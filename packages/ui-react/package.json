@@ -1,0 +1,17 @@
+{
+  "name": "@bomberman65/ui-react",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@bomberman65/shared": "workspace:*",
+    "@bomberman65/game-core": "workspace:*",
+    "@bomberman65/app-state": "workspace:*"
+  }
+}

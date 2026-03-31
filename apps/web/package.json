@@ -1,0 +1,19 @@
+{
+  "name": "@bomberman65/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bomberman65/shared": "workspace:*",
+    "@bomberman65/game-core": "workspace:*",
+    "@bomberman65/render-r3f": "workspace:*",
+    "@bomberman65/ui-react": "workspace:*",
+    "@bomberman65/app-state": "workspace:*",
+    "@bomberman65/workers": "workspace:*"
+  }
+}
