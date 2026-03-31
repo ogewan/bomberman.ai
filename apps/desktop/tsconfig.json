@@ -5,13 +5,5 @@
     "rootDir": "./src",
     "lib": ["ES2022", "DOM"]
   },
-  "include": ["src"],
-  "references": [
-    { "path": "../../packages/shared" },
-    { "path": "../../packages/game-core" },
-    { "path": "../../packages/render-r3f" },
-    { "path": "../../packages/ui-react" },
-    { "path": "../../packages/app-state" },
-    { "path": "../../packages/workers" }
-  ]
+  "include": ["src"]
 }

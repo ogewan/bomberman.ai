@@ -1,13 +1,1 @@
-{
-  "files": [],
-  "references": [
-    { "path": "packages/shared" },
-    { "path": "packages/game-core" },
-    { "path": "packages/app-state" },
-    { "path": "packages/workers" },
-    { "path": "packages/render-r3f" },
-    { "path": "packages/ui-react" },
-    { "path": "apps/web" },
-    { "path": "apps/desktop" }
-  ]
-}
+{ "extends": "./tsconfig.base.json", "include": ["packages/*/src", "apps/*/src"] }

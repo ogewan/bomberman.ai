@@ -4,7 +4,11 @@
       "mcp__claude_ai_Notion__notion-fetch",
       "Bash(pnpm format:*)",
       "Bash(pnpm typecheck:*)",
-      "Bash(*)"
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Read(//c/wamp64/www/__active/bomberman26/packages/game-core/src/**)",
+      "Bash(done)",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }
