@@ -8,7 +8,8 @@
       "Bash(do echo:*)",
       "Read(//c/wamp64/www/__active/bomberman26/packages/game-core/src/**)",
       "Bash(done)",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "Bash(pnpm test:*)"
     ]
   }
 }
