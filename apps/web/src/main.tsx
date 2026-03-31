@@ -16,7 +16,9 @@ import { DEFAULT_MATCH_CONFIG } from '@bomberman65/shared';
 import {
   createSimulationRun,
   SimulationRunner,
-  IdleIntentCollector,
+  KeyboardIntentCollector,
+  BotIntentCollector,
+  CompositeIntentCollector,
   buildRenderModel,
 } from '@bomberman65/game-core';
 import type { RenderModel } from '@bomberman65/game-core';
@@ -24,7 +26,7 @@ import { SceneRoot } from '@bomberman65/render-r3f';
 import { AppShell } from '@bomberman65/ui-react';
 import { useSessionStore, useLayoutStore } from '@bomberman65/app-state';
 
-/** Small demo map for initial testing. */
+/** Demo 7x7 arena for initial testing. */
 const DEMO_MAP: MapDefinition = {
   id: 'demo',
   version: 'v0',
@@ -108,6 +110,7 @@ function App() {
   const [snapshot, setSnapshot] = useState<WorldSnapshot | null>(null);
   const [renderModel, setRenderModel] = useState<RenderModel | null>(null);
   const intervalRef = useRef<number | null>(null);
+  const keyboardRef = useRef<KeyboardIntentCollector | null>(null);
 
   const gameState = useSessionStore((s) => s.gameState);
   const setGameState = useSessionStore((s) => s.setGameState);
@@ -126,9 +129,14 @@ function App() {
   );
 
   const handlePlay = useCallback(() => {
-    const config = { ...DEFAULT_MATCH_CONFIG, mapId: 'demo', seed: Date.now() } as Parameters<
+    // Cleanup previous keyboard listener
+    if (keyboardRef.current) keyboardRef.current.detach();
+
+    const seed = Date.now();
+    const config = { ...DEFAULT_MATCH_CONFIG, mapId: 'demo', seed } as Parameters<
       typeof createSimulationRun
     >[0]['config'];
+
     const { run } = createSimulationRun({
       map: DEMO_MAP,
       config,
@@ -138,7 +146,18 @@ function App() {
       ],
     });
 
-    const r = new SimulationRunner(run, new IdleIntentCollector());
+    // Player controls via keyboard
+    const keyboard = new KeyboardIntentCollector('player1');
+    keyboard.attach();
+    keyboardRef.current = keyboard;
+
+    // Bot AI
+    const bot = new BotIntentCollector(['bot1'], seed);
+
+    // Combine player + bot intents
+    const composite = new CompositeIntentCollector([keyboard, bot]);
+
+    const r = new SimulationRunner(run, composite);
     r.start();
     setRunner(r);
     setGameState('playing');
@@ -159,6 +178,10 @@ function App() {
     runner?.stop();
     setGameState('results');
     if (intervalRef.current) clearInterval(intervalRef.current);
+    if (keyboardRef.current) {
+      keyboardRef.current.detach();
+      keyboardRef.current = null;
+    }
   }, [runner, setGameState]);
 
   const handleStepTick = useCallback(() => {
@@ -180,6 +203,10 @@ function App() {
         if (run.status === 'finished') {
           setGameState('results');
           if (intervalRef.current) clearInterval(intervalRef.current);
+          if (keyboardRef.current) {
+            keyboardRef.current.detach();
+            keyboardRef.current = null;
+          }
         }
       }, ms);
       return () => {
@@ -187,6 +214,13 @@ function App() {
       };
     }
   }, [gameState, runner, playbackSpeed, updateView, setGameState]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (keyboardRef.current) keyboardRef.current.detach();
+    };
+  }, []);
 
   return (
     <AppShell
@@ -210,13 +244,19 @@ function App() {
           <div
             style={{
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               height: '100%',
               color: '#888',
+              gap: 8,
             }}
           >
-            Press Start to begin
+            <div style={{ fontSize: 18 }}>Bomberman 65</div>
+            <div>Press Start to begin</div>
+            <div style={{ fontSize: 11, color: '#666', marginTop: 8 }}>
+              Controls: WASD/Arrows = Move | Space = Bomb | E = Pickup/Pump | Q = Throw | F = Kick
+            </div>
           </div>
         )
       }

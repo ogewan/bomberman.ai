@@ -39,6 +39,9 @@ export { applyBlastEffects, cleanup } from './rules/blastEffects.js';
 
 // Intents
 export { type IntentCollector, IdleIntentCollector } from './intents/IntentCollector.js';
+export { KeyboardIntentCollector } from './intents/KeyboardIntentCollector.js';
+export { BotIntentCollector } from './intents/BotIntentCollector.js';
+export { CompositeIntentCollector } from './intents/CompositeIntentCollector.js';
 
 // Validation
 export { ValidationPipeline, ValidationError } from './validation/ValidationPipeline.js';
@@ -55,6 +58,14 @@ export {
 export { ReplayController } from './replay/ReplayController.js';
 export { ReplayIntentCollector } from './replay/ReplayIntentCollector.js';
 export { serializeReplayLog, deserializeReplayLog } from './replay/replaySerialization.js';
+
+// Content IO
+export {
+  serializeMap,
+  deserializeMap,
+  serializeScenario,
+  deserializeScenario,
+} from './factories/contentIO.js';
 
 // Adapters
 export {
