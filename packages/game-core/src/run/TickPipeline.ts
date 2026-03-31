@@ -16,8 +16,11 @@ import type { ActorIntent, WorldSnapshot } from '@bomberman65/shared';
 import { validateIntents } from '../rules/intentValidation.js';
 import { advanceTimers } from '../rules/timerAdvancement.js';
 import { applyMoveIntents, resolveSurfaceTravelPhases } from '../rules/movementResolution.js';
+import { applyBombIntents } from '../rules/bombActions.js';
 import { resolveThrownTravel } from '../rules/thrownTravelResolution.js';
 import { resolveFallingAndBounds } from '../rules/fallingAndBounds.js';
+import { transitionExpiredBombs } from '../rules/explosionPropagation.js';
+import { applyBlastEffects, cleanup } from '../rules/blastEffects.js';
 
 /** Execute a single tick on the world snapshot, mutating it in place. */
 export function executeTick(snapshot: WorldSnapshot, intents: ActorIntent[]): void {
@@ -26,8 +29,9 @@ export function executeTick(snapshot: WorldSnapshot, intents: ActorIntent[]): vo
   // Step 2: Validate intent preconditions
   const validIntents = validateIntents(snapshot, intents);
 
-  // Step 2b: Apply validated move intents (start surface travel)
+  // Step 2b: Apply validated intents (start movement, place bombs, kick, etc.)
   applyMoveIntents(snapshot, validIntents);
+  applyBombIntents(snapshot, validIntents);
 
   // Step 3: Advance timers
   advanceTimers(snapshot);
@@ -39,36 +43,16 @@ export function executeTick(snapshot: WorldSnapshot, intents: ActorIntent[]): vo
   // Step 4b: Falling and out-of-bounds
   resolveFallingAndBounds(snapshot);
 
-  // Step 5: Transition bombs with zero fuse to exploding (Phase 5)
+  // Step 5: Transition bombs with zero fuse to exploding
   transitionExpiredBombs(snapshot);
 
-  // Step 6: Recompute affected cells for exploding bombs (Phase 5)
-  recomputeExplosionCells(snapshot);
-
-  // Step 7: Apply blast effects (Phase 5)
+  // Steps 6-7: Apply blast effects (breakable destruction, elimination, chain detonation)
+  // Note: affectedCells are computed during detonation in step 5
   applyBlastEffects(snapshot);
 
-  // Step 8: Cleanup (Phase 5)
+  // Step 8: Cleanup
   cleanup(snapshot);
 
   // Advance tick counter
   (snapshot as { tick: number }).tick += 1;
-}
-
-// --- Stub implementations for Phase 5 ---
-
-function transitionExpiredBombs(_snapshot: WorldSnapshot): void {
-  // Phase 5: bombs with fuseTicksRemaining === 0 → exploding
-}
-
-function recomputeExplosionCells(_snapshot: WorldSnapshot): void {
-  // Phase 5: regular square propagation, pumped cube propagation
-}
-
-function applyBlastEffects(_snapshot: WorldSnapshot): void {
-  // Phase 5: stun/elimination, shield consume, breakable destruction, chain detonation
-}
-
-function cleanup(_snapshot: WorldSnapshot): void {
-  // Phase 5: remove expired explosions, removed bombs, finalize eliminated actors
 }

@@ -33,6 +33,9 @@ export { advanceTimers } from './rules/timerAdvancement.js';
 export { applyMoveIntents, resolveSurfaceTravelPhases } from './rules/movementResolution.js';
 export { resolveThrownTravel } from './rules/thrownTravelResolution.js';
 export { resolveFallingAndBounds } from './rules/fallingAndBounds.js';
+export { applyBombIntents } from './rules/bombActions.js';
+export { transitionExpiredBombs, detonateBomb } from './rules/explosionPropagation.js';
+export { applyBlastEffects, cleanup } from './rules/blastEffects.js';
 
 // Intents
 export { type IntentCollector, IdleIntentCollector } from './intents/IntentCollector.js';
