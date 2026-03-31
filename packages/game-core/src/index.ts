@@ -55,3 +55,13 @@ export {
 export { ReplayController } from './replay/ReplayController.js';
 export { ReplayIntentCollector } from './replay/ReplayIntentCollector.js';
 export { serializeReplayLog, deserializeReplayLog } from './replay/replaySerialization.js';
+
+// Adapters
+export {
+  buildRenderModel,
+  type RenderModel,
+  type TerrainInstance,
+  type ActorVisual,
+  type BombVisual,
+  type ItemVisual,
+} from './adapters/RenderModelAdapter.js';

@@ -9,7 +9,8 @@
       "Read(//c/wamp64/www/__active/bomberman26/packages/game-core/src/**)",
       "Bash(done)",
       "Bash(grep -v \"^$\")",
-      "Bash(pnpm test:*)"
+      "Bash(pnpm test:*)",
+      "Bash(pnpm add:*)"
     ]
   }
 }
