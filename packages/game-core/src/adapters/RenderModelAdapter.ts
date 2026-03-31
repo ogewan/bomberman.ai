@@ -90,6 +90,7 @@ export function buildRenderModel(snapshot: WorldSnapshot): RenderModel {
       isStunned: actor.stunTicksRemaining > 0,
       isShielded: actor.shieldTicksRemaining > 0,
       motionProgress,
+      // Interpolation spans both phases: leaving = 0→0.5, entering = 0.5→1.0
       motionFrom: actor.state.kind === 'surfaceTravel' ? actor.state.from : undefined,
       motionTo: actor.state.kind === 'surfaceTravel' ? actor.state.to : undefined,
     };
@@ -132,10 +133,25 @@ export function buildRenderModel(snapshot: WorldSnapshot): RenderModel {
   };
 }
 
+/**
+ * Compute continuous motion progress across both phases:
+ *   leaving  phase: 0.0 → 0.5 (source center → cell boundary)
+ *   entering phase: 0.5 → 1.0 (cell boundary → destination center)
+ *
+ * If blocked at the leaving→entering boundary, the entity returns to idle
+ * at source (handled by movement resolution), so no reverse animation needed.
+ */
 function computeActorMotionProgress(actor: ActorState): number {
   if (actor.state.kind !== 'surfaceTravel') return 0;
-  if (actor.state.phaseTicksTotal === 0) return 1;
-  return actor.state.phaseTicksElapsed / actor.state.phaseTicksTotal;
+  if (actor.state.phaseTicksTotal === 0) return actor.state.phase === 'leaving' ? 0.5 : 1;
+
+  const phaseProgress = actor.state.phaseTicksElapsed / actor.state.phaseTicksTotal;
+
+  if (actor.state.phase === 'leaving') {
+    return phaseProgress * 0.5;
+  } else {
+    return 0.5 + phaseProgress * 0.5;
+  }
 }
 
 function computeFuseProgress(bomb: BombState): number {

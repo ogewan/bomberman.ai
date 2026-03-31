@@ -2,11 +2,12 @@
  * BotIntentCollector — simple rule-based AI for NPC actors.
  *
  * Behavior:
- * 1. If adjacent to an active explosion, flee (move away)
- * 2. If adjacent to a breakable, place bomb and flee
- * 3. Otherwise, random walk toward nearest breakable or roam randomly
+ * 1. If standing in a danger zone (bomb blast radius or active explosion), flee
+ * 2. If adjacent to a breakable and in a safe position, place bomb and flee
+ * 3. Otherwise, walk toward nearest breakable or roam randomly
  *
- * This is a v0 placeholder bot — not the TensorFlow ML bot planned for later.
+ * Danger awareness: the bot predicts blast radii of all non-removed bombs
+ * (not just active explosions) to avoid walking into future explosions.
  */
 
 import type {
@@ -32,6 +33,7 @@ export class BotIntentCollector implements IntentCollector {
 
   collectIntents(snapshot: WorldSnapshot): ActorIntent[] {
     const intents: ActorIntent[] = [];
+    const dangerCells = this.buildDangerZone(snapshot);
 
     for (const actorId of this.actorIds) {
       const actor = snapshot.actors[actorId] as ActorState | undefined;
@@ -40,62 +42,80 @@ export class BotIntentCollector implements IntentCollector {
         continue;
       }
 
-      // Can only act when idle
       if (actor.state.kind !== 'idle' || actor.stunTicksRemaining > 0) {
         intents.push({ kind: 'idle', actorId });
         continue;
       }
 
-      const intent = this.decideIntent(snapshot, actor);
+      const intent = this.decideIntent(snapshot, actor, dangerCells);
       intents.push(intent);
     }
 
     return intents;
   }
 
-  private decideIntent(snapshot: WorldSnapshot, actor: ActorState): ActorIntent {
+  private decideIntent(
+    snapshot: WorldSnapshot,
+    actor: ActorState,
+    dangerCells: Set<string>,
+  ): ActorIntent {
     const { cell } = actor;
+    const posKey = cellKey(cell);
+    const inDanger = dangerCells.has(posKey);
 
-    // 1. Flee if near an active explosion
-    const dangerDirs = this.findDangerDirections(snapshot, cell);
-    if (dangerDirs.length > 0) {
-      const safeDirs = this.findSafeDirections(snapshot, cell, dangerDirs);
+    // 1. If in danger, flee to a safe walkable cell
+    if (inDanger) {
+      const safeDirs = this.findSafeWalkableDirections(snapshot, cell, dangerCells);
+      if (safeDirs.length > 0) {
+        const dir = safeDirs[Math.floor(this.rng.next() * safeDirs.length)]!;
+        return { kind: 'move', actorId: actor.id, direction: dir };
+      }
+      // No safe direction — try any walkable direction as last resort
+      const anyDirs = this.findWalkableDirections(snapshot, cell);
+      if (anyDirs.length > 0) {
+        const dir = anyDirs[Math.floor(this.rng.next() * anyDirs.length)]!;
+        return { kind: 'move', actorId: actor.id, direction: dir };
+      }
+      return { kind: 'idle', actorId: actor.id };
+    }
+
+    // 2. If adjacent to a breakable and NOT standing on a bomb, place bomb
+    const breakableDir = this.findAdjacentBreakable(snapshot, cell);
+    if (breakableDir && !this.isOnBomb(snapshot, actor)) {
+      const ownBombs = Object.values(snapshot.bombs).filter(
+        (b) =>
+          (b as BombState).ownerActorId === actor.id && (b as BombState).state.kind !== 'removed',
+      ).length;
+      if (ownBombs < actor.count) {
+        // Only place if there's a safe escape route after placing
+        const escapeAfterBomb = this.findSafeWalkableDirections(snapshot, cell, dangerCells);
+        if (escapeAfterBomb.length > 0) {
+          return { kind: 'placeBomb', actorId: actor.id };
+        }
+      }
+    }
+
+    // 3. Standing on own bomb — flee immediately
+    if (this.isOnBomb(snapshot, actor)) {
+      const safeDirs = this.findSafeWalkableDirections(snapshot, cell, dangerCells);
       if (safeDirs.length > 0) {
         const dir = safeDirs[Math.floor(this.rng.next() * safeDirs.length)]!;
         return { kind: 'move', actorId: actor.id, direction: dir };
       }
     }
 
-    // 2. Check if standing on own bomb — flee
-    const onBomb = this.isOnBomb(snapshot, actor);
-    if (onBomb) {
-      const escapeDirs = this.findWalkableDirections(snapshot, cell);
-      if (escapeDirs.length > 0) {
-        const dir = escapeDirs[Math.floor(this.rng.next() * escapeDirs.length)]!;
-        return { kind: 'move', actorId: actor.id, direction: dir };
-      }
-    }
-
-    // 3. If adjacent to a breakable and no own bomb nearby, place bomb
-    const breakableDir = this.findAdjacentBreakable(snapshot, cell);
-    if (breakableDir && !onBomb) {
-      const ownBombs = Object.values(snapshot.bombs).filter(
-        (b) =>
-          (b as BombState).ownerActorId === actor.id && (b as BombState).state.kind !== 'removed',
-      ).length;
-      if (ownBombs < actor.count) {
-        return { kind: 'placeBomb', actorId: actor.id };
-      }
-    }
-
-    // 4. Random walk toward a breakable or roam
-    const walkable = this.findWalkableDirections(snapshot, cell);
-    if (walkable.length > 0) {
+    // 4. Walk toward a breakable or roam (only to safe cells)
+    const safeDirs = this.findSafeWalkableDirections(snapshot, cell, dangerCells);
+    if (safeDirs.length > 0) {
       // Prefer direction toward a breakable
-      const towardBreakable = walkable.filter((d) => {
+      const towardBreakable = safeDirs.filter((d) => {
         const vec = DIRECTION_TO_VECTOR[d];
         for (let dist = 1; dist <= 3; dist++) {
-          const check: Vec3i = { x: cell.x + vec.dx * dist, y: cell.y + vec.dy * dist, z: cell.z };
+          const check: Vec3i = {
+            x: cell.x + vec.dx * dist,
+            y: cell.y + vec.dy * dist,
+            z: cell.z,
+          };
           const c = snapshot.cells[check.z]?.[check.y]?.[check.x];
           if (c?.terrain === 'breakable') return true;
           if (c?.terrain === 'wall') break;
@@ -103,7 +123,7 @@ export class BotIntentCollector implements IntentCollector {
         return false;
       });
 
-      const candidates = towardBreakable.length > 0 ? towardBreakable : walkable;
+      const candidates = towardBreakable.length > 0 ? towardBreakable : safeDirs;
       const dir = candidates[Math.floor(this.rng.next() * candidates.length)]!;
       return { kind: 'move', actorId: actor.id, direction: dir };
     }
@@ -111,38 +131,57 @@ export class BotIntentCollector implements IntentCollector {
     return { kind: 'idle', actorId: actor.id };
   }
 
-  private findDangerDirections(snapshot: WorldSnapshot, pos: Vec3i): Direction2D[] {
-    const danger: Direction2D[] = [];
+  /**
+   * Build a set of all cells that are in the blast radius of any bomb
+   * (active explosions + predicted blast of idle/ticking bombs).
+   */
+  private buildDangerZone(snapshot: WorldSnapshot): Set<string> {
+    const danger = new Set<string>();
+
     for (const bomb of Object.values(snapshot.bombs) as BombState[]) {
-      if (bomb.state.kind !== 'exploding') continue;
-      for (const affected of bomb.state.affectedCells) {
-        if (affected.x === pos.x && affected.y === pos.y && affected.z === pos.z) {
-          // We're in danger — all directions are potentially unsafe
-          return CARDINAL_DIRECTIONS.slice() as Direction2D[];
+      if (bomb.state.kind === 'removed') continue;
+
+      // Active explosions — directly dangerous
+      if (bomb.state.kind === 'exploding') {
+        for (const cell of bomb.state.affectedCells) {
+          danger.add(cellKey(cell));
         }
-        // Check adjacent
-        for (const dir of CARDINAL_DIRECTIONS) {
-          const vec = DIRECTION_TO_VECTOR[dir];
-          if (
-            affected.x === pos.x + vec.dx &&
-            affected.y === pos.y + vec.dy &&
-            affected.z === pos.z
-          ) {
-            danger.push(dir);
-          }
+        continue;
+      }
+
+      // Predict blast radius of non-exploding bombs
+      // Regular: cardinal directions up to power
+      danger.add(cellKey(bomb.cell));
+      for (const dir of CARDINAL_DIRECTIONS) {
+        const vec = DIRECTION_TO_VECTOR[dir];
+        for (let i = 1; i <= bomb.power; i++) {
+          const pos: Vec3i = {
+            x: bomb.cell.x + vec.dx * i,
+            y: bomb.cell.y + vec.dy * i,
+            z: bomb.cell.z,
+          };
+          const cell = snapshot.cells[pos.z]?.[pos.y]?.[pos.x];
+          if (!cell) break;
+          if (cell.terrain === 'wall') break;
+          danger.add(cellKey(pos));
+          if (cell.terrain === 'breakable') break;
         }
       }
     }
+
     return danger;
   }
 
-  private findSafeDirections(
+  private findSafeWalkableDirections(
     snapshot: WorldSnapshot,
     pos: Vec3i,
-    dangerDirs: Direction2D[],
+    dangerCells: Set<string>,
   ): Direction2D[] {
-    const dangerSet = new Set(dangerDirs);
-    return this.findWalkableDirections(snapshot, pos).filter((d) => !dangerSet.has(d));
+    return this.findWalkableDirections(snapshot, pos).filter((d) => {
+      const vec = DIRECTION_TO_VECTOR[d];
+      const target: Vec3i = { x: pos.x + vec.dx, y: pos.y + vec.dy, z: pos.z };
+      return !dangerCells.has(cellKey(target));
+    });
   }
 
   private findWalkableDirections(snapshot: WorldSnapshot, pos: Vec3i): Direction2D[] {
@@ -177,4 +216,8 @@ export class BotIntentCollector implements IntentCollector {
         (b as BombState).state.kind !== 'removed',
     );
   }
+}
+
+function cellKey(pos: Vec3i): string {
+  return `${pos.x},${pos.y},${pos.z}`;
 }

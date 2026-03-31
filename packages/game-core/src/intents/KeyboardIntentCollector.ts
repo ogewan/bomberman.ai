@@ -16,13 +16,16 @@
 import type { ActorIntent, ActorState, WorldSnapshot, Direction2D } from '@bomberman65/shared';
 import type { IntentCollector } from './IntentCollector.js';
 
+// Grid convention: y increases downward, so visual "up" on screen = north (dy=-1).
+// Camera looks from negative-y toward positive-y, so screen-up = grid-north.
+// W/ArrowUp = north (toward y=0), S/ArrowDown = south (toward y=max).
 const KEY_TO_DIRECTION: Record<string, Direction2D> = {
-  w: 'north',
+  w: 'south',
   a: 'west',
-  s: 'south',
+  s: 'north',
   d: 'east',
-  ArrowUp: 'north',
-  ArrowDown: 'south',
+  ArrowUp: 'south',
+  ArrowDown: 'north',
   ArrowLeft: 'west',
   ArrowRight: 'east',
 };

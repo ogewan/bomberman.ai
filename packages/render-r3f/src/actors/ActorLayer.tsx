@@ -20,8 +20,8 @@ export function ActorLayer({ actors }: ActorLayerProps) {
 
         return (
           <group key={actor.id} position={[pos.x, pos.y, pos.z + 0.5]}>
-            {/* Body capsule */}
-            <mesh>
+            {/* Body capsule — rotated to stand upright (Z-up world) */}
+            <mesh rotation={[Math.PI / 2, 0, 0]}>
               <capsuleGeometry args={[0.2, 0.4, 4, 8]} />
               <meshStandardMaterial
                 color={actor.color}
