@@ -12,7 +12,7 @@
 
 import type { WorkerCommand, WorkerEvent } from '@bomberman65/shared';
 import { SimulationRunner } from './SimulationRunner.js';
-import { createSimulationRun } from './SimulationRunFactory.js';
+import { createSimulationRun } from '../factories/SimulationRunFactory.js';
 import { IdleIntentCollector } from '../intents/IntentCollector.js';
 
 /** Callback type for emitting events from the simulation to the host. */
@@ -60,7 +60,7 @@ export class SimulationBridge {
 
   private handleStart(command: Extract<WorkerCommand, { kind: 'start' }>) {
     try {
-      const run = createSimulationRun({
+      const { run } = createSimulationRun({
         map: command.map,
         config: command.config,
         spawnAssignments: command.spawnAssignments,
