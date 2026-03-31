@@ -2,6 +2,16 @@
 
 // World
 export { buildWorldSnapshot, type WorldConstructionParams } from './world/WorldFactory.js';
+export {
+  getCell,
+  isInBounds,
+  hasSupportBelow,
+  isWalkable,
+  isBlockingTerrain,
+  setOccupant,
+  clearOccupant,
+  getNeighbor,
+} from './world/gridHelpers.js';
 
 // Run
 export { SimulationRunner } from './run/SimulationRunner.js';
@@ -16,6 +26,13 @@ export {
 } from './factories/SimulationRunFactory.js';
 export { MapContentLoader } from './factories/MapContentLoader.js';
 export { ScenarioLoader } from './factories/ScenarioLoader.js';
+
+// Rules
+export { validateIntents } from './rules/intentValidation.js';
+export { advanceTimers } from './rules/timerAdvancement.js';
+export { applyMoveIntents, resolveSurfaceTravelPhases } from './rules/movementResolution.js';
+export { resolveThrownTravel } from './rules/thrownTravelResolution.js';
+export { resolveFallingAndBounds } from './rules/fallingAndBounds.js';
 
 // Intents
 export { type IntentCollector, IdleIntentCollector } from './intents/IntentCollector.js';
