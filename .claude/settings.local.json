@@ -10,7 +10,9 @@
       "Bash(done)",
       "Bash(grep -v \"^$\")",
       "Bash(pnpm test:*)",
-      "Bash(pnpm add:*)"
+      "Bash(pnpm add:*)",
+      "Bash(pnpm approve-builds:*)",
+      "Bash(pnpm install:*)"
     ]
   }
 }
