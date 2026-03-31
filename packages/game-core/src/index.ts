@@ -14,7 +14,7 @@ export {
 } from './world/gridHelpers.js';
 
 // Run
-export { SimulationRunner } from './run/SimulationRunner.js';
+export { SimulationRunner, type SimulationRunnerOptions } from './run/SimulationRunner.js';
 export { SimulationBridge, type SimulationEventHandler } from './run/SimulationBridge.js';
 export { executeTick } from './run/TickPipeline.js';
 
@@ -52,3 +52,6 @@ export {
   type ReplayTickEntry,
   type ReplayCheckpoint,
 } from './replay/ReplayRecorder.js';
+export { ReplayController } from './replay/ReplayController.js';
+export { ReplayIntentCollector } from './replay/ReplayIntentCollector.js';
+export { serializeReplayLog, deserializeReplayLog } from './replay/replaySerialization.js';

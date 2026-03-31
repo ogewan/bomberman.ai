@@ -7,22 +7,48 @@
  * - Pausing/resuming
  * - Single-step tick
  * - Coordinating with intent collectors
+ * - Recording replay data (optional)
  * - Producing outputs for adapters
  *
  * SimulationRun = data, SimulationRunner = orchestration behavior.
  */
 
-import type { SimulationRun, ActorState } from '@bomberman65/shared';
+import type { SimulationRun, ActorState, ActorIntent } from '@bomberman65/shared';
+import { deepClone } from '@bomberman65/shared';
 import type { IntentCollector } from '../intents/IntentCollector.js';
 import { executeTick } from './TickPipeline.js';
+import { ReplayRecorder } from '../replay/ReplayRecorder.js';
+
+export type SimulationRunnerOptions = {
+  /** Enable replay recording. Default: true if config.allowReplayRecording is not false. */
+  recordReplay?: boolean;
+  /** Interval in ticks between checkpoint snapshots. Default: 300. */
+  checkpointInterval?: number;
+};
 
 export class SimulationRunner {
   private run: SimulationRun;
   private intentCollector: IntentCollector;
+  private recorder: ReplayRecorder | null = null;
 
-  constructor(run: SimulationRun, intentCollector: IntentCollector) {
+  constructor(
+    run: SimulationRun,
+    intentCollector: IntentCollector,
+    options?: SimulationRunnerOptions,
+  ) {
     this.run = run;
     this.intentCollector = intentCollector;
+
+    const shouldRecord = options?.recordReplay ?? run.config.allowReplayRecording !== false;
+    if (shouldRecord) {
+      this.recorder = new ReplayRecorder({
+        replayId: `replay_${run.runId}`,
+        mapId: run.config.mapId,
+        config: run.config,
+        initialSnapshot: deepClone(run.snapshot),
+        checkpointInterval: options?.checkpointInterval,
+      });
+    }
   }
 
   /** Get the current run data. */
@@ -33,6 +59,11 @@ export class SimulationRunner {
   /** Get the current world snapshot. */
   getSnapshot() {
     return this.run.snapshot;
+  }
+
+  /** Get the replay recorder, if recording is enabled. */
+  getRecorder(): ReplayRecorder | null {
+    return this.recorder;
   }
 
   /** Start the simulation. Transitions from idle to running. */
@@ -67,7 +98,6 @@ export class SimulationRunner {
   /**
    * Execute a single tick.
    * Collects intents via the intent collector, then runs the tick pipeline.
-   * Returns the updated snapshot.
    */
   stepTick(): void {
     if (this.run.status !== 'running' && this.run.status !== 'paused') {
@@ -75,10 +105,18 @@ export class SimulationRunner {
     }
 
     const intents = this.intentCollector.collectIntents(this.run.snapshot);
-    executeTick(this.run.snapshot, intents);
+    this.executeAndRecord(intents);
+  }
 
-    // Check win/loss conditions
-    this.checkTermination();
+  /**
+   * Execute a single tick with externally provided intents.
+   * Used by SimulationBridge when intents come from the worker message.
+   */
+  stepTickWithIntents(intents: ActorIntent[]): void {
+    if (this.run.status !== 'running' && this.run.status !== 'paused') {
+      throw new Error(`Cannot step run in status '${this.run.status}'`);
+    }
+    this.executeAndRecord(intents);
   }
 
   /**
@@ -97,6 +135,24 @@ export class SimulationRunner {
     this.intentCollector = collector;
   }
 
+  private executeAndRecord(intents: ActorIntent[]): void {
+    const tick = this.run.snapshot.tick;
+
+    // Record intents before execution
+    if (this.recorder) {
+      // Capture checkpoint snapshot at interval boundaries (before tick executes)
+      const needsCheckpoint =
+        tick > 0 && this.recorder.getLog().checkpoints.length === 0
+          ? true
+          : tick % (this.recorder['checkpointInterval'] ?? 300) === 0;
+      const checkpoint = needsCheckpoint ? deepClone(this.run.snapshot) : undefined;
+      this.recorder.recordTick(tick, intents, checkpoint);
+    }
+
+    executeTick(this.run.snapshot, intents);
+    this.checkTermination();
+  }
+
   private checkTermination(): void {
     const { snapshot, config } = this.run;
 
@@ -108,6 +164,7 @@ export class SimulationRunner {
         totalTicks: snapshot.tick,
         actorOutcomes: this.buildActorOutcomes(),
       };
+      this.recorder?.recordResult(this.run.result);
       return;
     }
 
@@ -123,6 +180,7 @@ export class SimulationRunner {
         totalTicks: snapshot.tick,
         actorOutcomes: this.buildActorOutcomes(),
       };
+      this.recorder?.recordResult(this.run.result);
     }
   }
 

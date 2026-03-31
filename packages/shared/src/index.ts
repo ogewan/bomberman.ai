@@ -77,6 +77,7 @@ export {
 // Math utilities
 export { vec3i, vec3iEqual, vec3iAdd, vec3iInBounds } from './math/vec3i.js';
 export { SeededRng } from './math/seededRng.js';
+export { deepClone } from './math/deepClone.js';
 
 // Constants
 export {

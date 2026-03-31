@@ -83,13 +83,7 @@ export class SimulationBridge {
     }
 
     try {
-      // Use provided intents via a one-shot collector
-      const intents = command.intents;
-      this.runner.setIntentCollector({
-        collectIntents: () => intents,
-      });
-
-      this.runner.stepTick();
+      this.runner.stepTickWithIntents(command.intents);
 
       const run = this.runner.getRun();
       if (run.status === 'finished') {
