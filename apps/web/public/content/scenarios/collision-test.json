@@ -1,0 +1,27 @@
+{
+  "id": "collision-test",
+  "mapId": "training",
+  "notes": "Pre-placed bombs for testing explosion and collision behavior.",
+  "actors": [
+    { "id": "p1", "spawnCell": { "x": 1, "y": 1, "z": 0 }, "power": 3, "count": 3 },
+    { "id": "b1", "spawnCell": { "x": 5, "y": 5, "z": 0 }, "power": 2, "count": 2 }
+  ],
+  "bombs": [
+    {
+      "id": "test_bomb_1",
+      "ownerActorId": "p1",
+      "bombType": "regular",
+      "cell": { "x": 3, "y": 3, "z": 0 },
+      "power": 2,
+      "fuseTicksRemaining": 30
+    },
+    {
+      "id": "test_bomb_2",
+      "ownerActorId": "b1",
+      "bombType": "regular",
+      "cell": { "x": 3, "y": 1, "z": 0 },
+      "power": 1,
+      "fuseTicksRemaining": 60
+    }
+  ]
+}

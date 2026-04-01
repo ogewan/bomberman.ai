@@ -1,0 +1,85 @@
+{
+  "id": "training",
+  "version": "v0",
+  "name": "Training Grid",
+  "description": "Small 7x7 arena for learning the basics.",
+  "size": { "x": 7, "y": 7, "z": 1 },
+  "cells": [
+    [
+      [
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        {
+          "terrain": "breakable",
+          "item": { "type": "power", "hiddenInBreakable": true, "dropChance": 1 }
+        },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "breakable" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "breakable" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        {
+          "terrain": "breakable",
+          "item": { "type": "count", "hiddenInBreakable": true, "dropChance": 1 }
+        },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" }
+      ]
+    ]
+  ],
+  "spawns": [
+    { "id": "p1", "kind": "player", "cell": { "x": 1, "y": 1, "z": 0 }, "facing": "south" },
+    { "id": "b1", "kind": "bot", "cell": { "x": 5, "y": 5, "z": 0 }, "facing": "north" }
+  ],
+  "tags": ["training", "small", "2-player"]
+}

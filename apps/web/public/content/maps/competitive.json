@@ -1,0 +1,173 @@
+{
+  "id": "competitive",
+  "version": "v0",
+  "name": "Battle Arena",
+  "description": "11x11 competitive arena with 4 spawn points and dense breakable layout.",
+  "size": { "x": 11, "y": 11, "z": 1 },
+  "cells": [
+    [
+      [
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "breakable" },
+        { "terrain": "breakable" },
+        { "terrain": "breakable" },
+        { "terrain": "breakable" },
+        { "terrain": "breakable" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" },
+        {
+          "terrain": "breakable",
+          "item": { "type": "power", "hiddenInBreakable": true, "dropChance": 0.5 }
+        },
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "breakable" },
+        { "terrain": "empty" },
+        { "terrain": "breakable" },
+        { "terrain": "empty" },
+        { "terrain": "breakable" },
+        { "terrain": "empty" },
+        { "terrain": "breakable" },
+        { "terrain": "empty" },
+        { "terrain": "breakable" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "breakable" },
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" },
+        { "terrain": "breakable" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        {
+          "terrain": "breakable",
+          "item": { "type": "upgrade-kick", "hiddenInBreakable": true, "dropChance": 0.5 }
+        },
+        { "terrain": "breakable" },
+        { "terrain": "breakable" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "breakable" },
+        { "terrain": "breakable" },
+        {
+          "terrain": "breakable",
+          "item": { "type": "upgrade-carryPump", "hiddenInBreakable": true, "dropChance": 0.5 }
+        },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "breakable" },
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" },
+        { "terrain": "breakable" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "breakable" },
+        { "terrain": "empty" },
+        { "terrain": "breakable" },
+        { "terrain": "empty" },
+        { "terrain": "breakable" },
+        { "terrain": "empty" },
+        { "terrain": "breakable" },
+        { "terrain": "empty" },
+        { "terrain": "breakable" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" },
+        {
+          "terrain": "breakable",
+          "item": { "type": "count", "hiddenInBreakable": true, "dropChance": 0.5 }
+        },
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "breakable" },
+        { "terrain": "breakable" },
+        { "terrain": "breakable" },
+        { "terrain": "breakable" },
+        { "terrain": "breakable" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" }
+      ]
+    ]
+  ],
+  "spawns": [
+    { "id": "p1", "kind": "player", "cell": { "x": 1, "y": 1, "z": 0 }, "facing": "south" },
+    { "id": "p2", "kind": "player", "cell": { "x": 9, "y": 1, "z": 0 }, "facing": "south" },
+    { "id": "b1", "kind": "bot", "cell": { "x": 1, "y": 9, "z": 0 }, "facing": "north" },
+    { "id": "b2", "kind": "bot", "cell": { "x": 9, "y": 9, "z": 0 }, "facing": "north" }
+  ],
+  "tags": ["competitive", "4-player", "dense"]
+}

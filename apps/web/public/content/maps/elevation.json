@@ -1,0 +1,150 @@
+{
+  "id": "elevation",
+  "version": "v0",
+  "name": "High Ground",
+  "description": "7x7x2 map with elevated wall platforms on z=1.",
+  "size": { "x": 7, "y": 7, "z": 2 },
+  "cells": [
+    [
+      [
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "wall" }
+      ],
+      [
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" },
+        { "terrain": "wall" }
+      ]
+    ],
+    [
+      [
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" }
+      ],
+      [
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" }
+      ],
+      [
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        {
+          "terrain": "breakable",
+          "item": { "type": "power", "hiddenInBreakable": true, "dropChance": 1 }
+        },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" }
+      ],
+      [
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "breakable" },
+        { "terrain": "empty" },
+        { "terrain": "breakable" },
+        { "terrain": "empty" },
+        { "terrain": "empty" }
+      ],
+      [
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        {
+          "terrain": "breakable",
+          "item": { "type": "upgrade-shield", "hiddenInBreakable": true, "dropChance": 1 }
+        },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" }
+      ],
+      [
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" }
+      ],
+      [
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" },
+        { "terrain": "empty" }
+      ]
+    ]
+  ],
+  "spawns": [
+    { "id": "p1", "kind": "player", "cell": { "x": 1, "y": 1, "z": 0 }, "facing": "south" },
+    { "id": "b1", "kind": "bot", "cell": { "x": 5, "y": 5, "z": 0 }, "facing": "north" }
+  ],
+  "tags": ["elevation", "test", "2-level"]
+}

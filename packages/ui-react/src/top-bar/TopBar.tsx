@@ -14,6 +14,8 @@ export type TopBarProps = {
   onStop?: () => void;
   onStepTick?: () => void;
   onRestart?: () => void;
+  onExportMap?: () => void;
+  onImportMap?: () => void;
 };
 
 export function TopBar({ onPlay, onPause, onResume, onStop, onStepTick, onRestart }: TopBarProps) {
@@ -60,7 +62,13 @@ export function TopBar({ onPlay, onPause, onResume, onStop, onStepTick, onRestar
 function renderControls(state: GameState, handlers: TopBarProps) {
   switch (state) {
     case 'setup':
-      return <Btn onClick={handlers.onPlay}>Start</Btn>;
+      return (
+        <>
+          <Btn onClick={handlers.onPlay}>Start</Btn>
+          <Btn onClick={handlers.onImportMap}>Import Map</Btn>
+          <Btn onClick={handlers.onExportMap}>Export Map</Btn>
+        </>
+      );
     case 'playing':
       return (
         <>

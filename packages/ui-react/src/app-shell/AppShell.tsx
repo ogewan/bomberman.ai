@@ -1,26 +1,40 @@
 /**
  * AppShell — top-level GUI root component.
  * Composes AppLayout with TopBar, LeftSidebar, RightSidebar, BottomBar.
- * The center area is a slot for the R3F SceneRoot (passed as prop since
- * GUI and renderer have separate roots conceptually, but share the same DOM tree).
  */
 
 import React from 'react';
-import type { WorldSnapshot } from '@bomberman65/shared';
+import type { WorldSnapshot, MatchConfig } from '@bomberman65/shared';
+import type { ActorState } from '@bomberman65/shared';
 import { AppLayout } from '../layout/AppLayout.js';
 import { TopBar, type TopBarProps } from '../top-bar/TopBar.js';
 import { LeftSidebar } from '../left-sidebar/LeftSidebar.js';
 import { RightSidebar } from '../right-sidebar/RightSidebar.js';
 import { BottomBar } from '../bottom-bar/BottomBar.js';
-import type { ActorState } from '@bomberman65/shared';
+
+export type MapSelectorProps = {
+  maps: { id: string; name: string }[];
+  selectedMapId: string;
+  onSelectMap: (id: string) => void;
+};
 
 export type AppShellProps = {
   renderArea: React.ReactNode;
   snapshot?: WorldSnapshot;
   controls?: TopBarProps;
+  mapSelector?: MapSelectorProps;
+  configOverrides?: Partial<MatchConfig>;
+  onConfigChange?: (overrides: Partial<MatchConfig>) => void;
 };
 
-export function AppShell({ renderArea, snapshot, controls }: AppShellProps) {
+export function AppShell({
+  renderArea,
+  snapshot,
+  controls,
+  mapSelector,
+  configOverrides,
+  onConfigChange,
+}: AppShellProps) {
   const actorCount = snapshot
     ? (Object.values(snapshot.actors) as ActorState[]).filter((a) => a.state.kind !== 'eliminated')
         .length
@@ -32,7 +46,14 @@ export function AppShell({ renderArea, snapshot, controls }: AppShellProps) {
   return (
     <AppLayout
       topBar={<TopBar {...controls} />}
-      leftSidebar={<LeftSidebar runInfo={runInfo} />}
+      leftSidebar={
+        <LeftSidebar
+          runInfo={runInfo}
+          mapSelector={mapSelector}
+          configOverrides={configOverrides}
+          onConfigChange={onConfigChange}
+        />
+      }
       rightSidebar={<RightSidebar snapshot={snapshot} />}
       bottomBar={<BottomBar actorCount={actorCount} bombCount={bombCount} />}
       center={renderArea}
