@@ -16,6 +16,8 @@ export type TopBarProps = {
   onRestart?: () => void;
   onExportMap?: () => void;
   onImportMap?: () => void;
+  onEditMap?: () => void;
+  onNewMap?: () => void;
 };
 
 export function TopBar({ onPlay, onPause, onResume, onStop, onStepTick, onRestart }: TopBarProps) {
@@ -65,8 +67,10 @@ function renderControls(state: GameState, handlers: TopBarProps) {
       return (
         <>
           <Btn onClick={handlers.onPlay}>Start</Btn>
-          <Btn onClick={handlers.onImportMap}>Import Map</Btn>
-          <Btn onClick={handlers.onExportMap}>Export Map</Btn>
+          <Btn onClick={handlers.onEditMap}>Edit Map</Btn>
+          <Btn onClick={handlers.onNewMap}>New Map</Btn>
+          <Btn onClick={handlers.onImportMap}>Import</Btn>
+          <Btn onClick={handlers.onExportMap}>Export</Btn>
         </>
       );
     case 'playing':

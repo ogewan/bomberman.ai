@@ -8,3 +8,4 @@ export { RightSidebar, type RightSidebarProps } from './right-sidebar/RightSideb
 export { BottomBar, type BottomBarProps } from './bottom-bar/BottomBar.js';
 export { MatchConfigEditor, type MatchConfigEditorProps } from './controls/MatchConfigEditor.js';
 export { type MapSelectorProps } from './app-shell/AppShell.js';
+export { MapEditor, type MapEditorProps } from './editor/MapEditor.js';

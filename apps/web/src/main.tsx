@@ -17,7 +17,7 @@ import {
 } from '@bomberman65/game-core';
 import type { RenderModel } from '@bomberman65/game-core';
 import { SceneRoot } from '@bomberman65/render-r3f';
-import { AppShell } from '@bomberman65/ui-react';
+import { AppShell, MapEditor } from '@bomberman65/ui-react';
 import { useSessionStore, useLayoutStore } from '@bomberman65/app-state';
 import {
   loadManifest,
@@ -154,6 +154,29 @@ function App() {
     input.click();
   }, []);
 
+  const handleEditMap = useCallback(() => {
+    setGameState('editor');
+  }, [setGameState]);
+
+  const handleNewMap = useCallback(() => {
+    setCurrentMap(null);
+    setGameState('editor');
+  }, [setGameState]);
+
+  const handleEditorSave = useCallback(
+    (map: MapDefinition) => {
+      setCurrentMap(map);
+      setSelectedMapId(map.id);
+      setGameState('setup');
+      downloadAsFile(serializeMap(map), `${map.id}.json`);
+    },
+    [setGameState],
+  );
+
+  const handleEditorClose = useCallback(() => {
+    setGameState('setup');
+  }, [setGameState]);
+
   // Auto-step loop when playing
   useEffect(() => {
     if (gameState === 'playing' && runner) {
@@ -195,6 +218,8 @@ function App() {
         onRestart: handlePlay,
         onExportMap: handleExportMap,
         onImportMap: handleImportMap,
+        onEditMap: handleEditMap,
+        onNewMap: handleNewMap,
       }}
       mapSelector={{
         maps: manifest?.maps ?? [],
@@ -204,7 +229,13 @@ function App() {
       configOverrides={configOverrides}
       onConfigChange={setConfigOverrides}
       renderArea={
-        renderModel ? (
+        gameState === 'editor' ? (
+          <MapEditor
+            initialMap={currentMap ?? undefined}
+            onSave={handleEditorSave}
+            onClose={handleEditorClose}
+          />
+        ) : renderModel ? (
           <SceneRoot
             renderModel={renderModel}
             showDebugGrid={showDebugGrid}

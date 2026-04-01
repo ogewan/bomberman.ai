@@ -12,7 +12,8 @@ export type GameState =
   | 'inspection'
   | 'replay'
   | 'batch'
-  | 'results';
+  | 'results'
+  | 'editor';
 
 export type SessionState = {
   gameState: GameState;
