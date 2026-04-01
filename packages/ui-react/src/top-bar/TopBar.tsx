@@ -20,7 +20,7 @@ export type TopBarProps = {
   onNewMap?: () => void;
 };
 
-export function TopBar({ onPlay, onPause, onResume, onStop, onStepTick, onRestart }: TopBarProps) {
+export function TopBar(props: TopBarProps) {
   const gameState = useSessionStore((s) => s.gameState);
   const playbackSpeed = useSessionStore((s) => s.playbackSpeed);
   const setPlaybackSpeed = useSessionStore((s) => s.setPlaybackSpeed);
@@ -34,9 +34,7 @@ export function TopBar({ onPlay, onPause, onResume, onStop, onStepTick, onRestar
       <span style={{ fontWeight: 'bold', marginRight: 8 }}>Bomberman 65</span>
       <span style={{ color: '#888', marginRight: 12 }}>{formatGameState(gameState)}</span>
 
-      <div style={{ display: 'flex', gap: 4 }}>
-        {renderControls(gameState, { onPlay, onPause, onResume, onStop, onStepTick, onRestart })}
-      </div>
+      <div style={{ display: 'flex', gap: 4 }}>{renderControls(gameState, props)}</div>
 
       <div style={{ marginLeft: 'auto', display: 'flex', gap: 4, alignItems: 'center' }}>
         <label style={{ fontSize: 11 }}>

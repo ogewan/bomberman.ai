@@ -66,6 +66,7 @@ function placeBomb(snapshot: WorldSnapshot, actor: ActorState, config: MatchConf
     cell: { ...actor.cell },
     power: actor.power,
     fuseTicksRemaining: config.regularBombFuseTicks,
+    initialFuseTicks: config.regularBombFuseTicks,
     state: { kind: 'idle' },
   };
 
@@ -133,6 +134,7 @@ function pumpBomb(snapshot: WorldSnapshot, actor: ActorState, config: MatchConfi
   if (!heldBomb) return;
   heldBomb.bombType = 'pumped';
   heldBomb.fuseTicksRemaining = config.pumpedBombFuseTicks;
+  heldBomb.initialFuseTicks = config.pumpedBombFuseTicks;
 }
 
 function throwHeldEntity(
@@ -152,6 +154,9 @@ function throwHeldEntity(
     const totalTicks = config.thrownTravelTicks;
     const leavingTicks = Math.floor(totalTicks / 2);
     const dest = getNeighbor(actor.cell, direction);
+
+    // Update bomb cell to actor's current position before throwing
+    heldBomb.cell = { ...actor.cell };
 
     heldBomb.state = {
       kind: 'thrownTravel',
@@ -179,6 +184,9 @@ function throwHeldEntity(
     const totalTicks = config.thrownTravelTicks;
     const leavingTicks = Math.floor(totalTicks / 2);
     const dest = getNeighbor(actor.cell, direction);
+
+    // Update held actor cell to thrower's position
+    heldActor.cell = { ...actor.cell };
 
     heldActor.state = {
       kind: 'thrownTravel',

@@ -197,6 +197,7 @@ function applyScenarioOverrides(
         cell: { ...sb.cell },
         power: sb.power,
         fuseTicksRemaining: sb.fuseTicksRemaining,
+        initialFuseTicks: sb.fuseTicksRemaining,
         state: { kind: 'idle' },
       };
       bombs[bomb.id] = bomb;

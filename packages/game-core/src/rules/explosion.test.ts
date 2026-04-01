@@ -55,6 +55,7 @@ function placeBomb(
     cell: pos,
     power,
     fuseTicksRemaining: fuse,
+    initialFuseTicks: fuse,
     state: { kind: 'idle' },
   };
   snapshot.bombs[bombId] = bomb;

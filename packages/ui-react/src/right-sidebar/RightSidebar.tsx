@@ -111,6 +111,31 @@ function InspectorPanel({
     );
   }
 
+  if (selection.kind === 'cell' && snapshot && 'position' in selection) {
+    const pos = (selection as { position: { x: number; y: number; z: number } }).position;
+    const cell = snapshot.cells[pos.z]?.[pos.y]?.[pos.x];
+    return (
+      <div style={{ fontSize: 11 }}>
+        <div style={{ fontWeight: 'bold', marginBottom: 4 }}>
+          Cell ({pos.x}, {pos.y}, {pos.z})
+        </div>
+        <div>Terrain: {cell?.terrain ?? 'out of bounds'}</div>
+        {cell?.ramp && (
+          <div>
+            Ramp: {cell.ramp.entry} → {cell.ramp.exit} (dz={cell.ramp.deltaZ})
+          </div>
+        )}
+        {cell?.item && <div>Item: {cell.item}</div>}
+        {cell?.occupant && (
+          <div>
+            Occupant: {cell.occupant.kind} ({cell.occupant.id})
+          </div>
+        )}
+        {!cell?.occupant && <div>Occupant: none</div>}
+      </div>
+    );
+  }
+
   return <div style={{ fontSize: 11 }}>Selected: {selection.kind}</div>;
 }
 

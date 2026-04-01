@@ -37,6 +37,9 @@ export type BombVisual = {
   readonly isHeld: boolean;
   readonly holderId?: string;
   readonly affectedCells?: Vec3i[];
+  readonly motionProgress: number;
+  readonly motionFrom?: Vec3i;
+  readonly motionTo?: Vec3i;
 };
 
 /** Visual representation of an item. */
@@ -133,11 +136,17 @@ export function buildRenderModel(snapshot: WorldSnapshot): RenderModel {
       }
     }
 
-    // If held, position above the holder
+    // Compute bomb motion for interpolation
+    const bombMotion = computeBombMotion(bomb);
+
+    // If held, use the holder actor's interpolated position
     let position = bomb.cell;
     if (isHeld && holderId) {
-      const holderPos = actorPositions.get(holderId);
-      if (holderPos) position = holderPos;
+      const holderVisual = actors.find((a) => a.id === holderId);
+      if (holderVisual) {
+        // Use the holder's interpolated position (already computed)
+        position = interpolatePosition(holderVisual);
+      }
     }
 
     bombs.push({
@@ -150,6 +159,9 @@ export function buildRenderModel(snapshot: WorldSnapshot): RenderModel {
       holderId,
       affectedCells:
         isExploding && bomb.state.kind === 'exploding' ? bomb.state.affectedCells : undefined,
+      motionProgress: bombMotion.progress,
+      motionFrom: bombMotion.from,
+      motionTo: bombMotion.to,
     });
   }
 
@@ -178,6 +190,47 @@ function computeActorMotionProgress(actor: ActorState): number {
 
 function computeFuseProgress(bomb: BombState): number {
   if (bomb.state.kind === 'exploding') return 1;
-  const totalFuse = bomb.bombType === 'regular' ? 120 : 120;
-  return 1 - bomb.fuseTicksRemaining / totalFuse;
+  const total = bomb.initialFuseTicks || 120;
+  return Math.max(0, Math.min(1, 1 - bomb.fuseTicksRemaining / total));
+}
+
+function computeBombMotion(bomb: BombState): {
+  progress: number;
+  from?: Vec3i;
+  to?: Vec3i;
+} {
+  if (bomb.state.kind === 'surfaceTravel') {
+    const { phase, phaseTicksElapsed, phaseTicksTotal } = bomb.state;
+    if (phaseTicksTotal === 0) return { progress: phase === 'leaving' ? 0.5 : 1 };
+    const p = phaseTicksElapsed / phaseTicksTotal;
+    return {
+      progress: phase === 'leaving' ? p * 0.5 : 0.5 + p * 0.5,
+      from: bomb.state.from,
+      to: bomb.state.to,
+    };
+  }
+  if (bomb.state.kind === 'thrownTravel') {
+    const { phase, phaseTicksElapsed, phaseTicksTotal } = bomb.state;
+    if (phaseTicksTotal === 0) return { progress: phase === 'leaving' ? 0.5 : 1 };
+    const p = phaseTicksElapsed / phaseTicksTotal;
+    return {
+      progress: phase === 'leaving' ? p * 0.5 : 0.5 + p * 0.5,
+      from: bomb.state.from,
+      to: bomb.state.to,
+    };
+  }
+  return { progress: 0 };
+}
+
+/** Interpolate a visual's position from its motion data. */
+function interpolatePosition(visual: ActorVisual): Vec3i {
+  if (!visual.motionFrom || !visual.motionTo || visual.motionProgress === 0) {
+    return visual.position;
+  }
+  const t = visual.motionProgress;
+  return {
+    x: visual.motionFrom.x + (visual.motionTo.x - visual.motionFrom.x) * t,
+    y: visual.motionFrom.y + (visual.motionTo.y - visual.motionFrom.y) * t,
+    z: visual.motionFrom.z + (visual.motionTo.z - visual.motionFrom.z) * t,
+  };
 }

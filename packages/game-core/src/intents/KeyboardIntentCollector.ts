@@ -60,10 +60,18 @@ export class KeyboardIntentCollector implements IntentCollector {
       intents.push({ kind: 'placeBomb', actorId: this.actorId });
     }
 
-    // Pickup / pump
+    // Pickup / pump — context-dependent: pump if already holding, pickup if not
     if (this.anyPressed(kb.pickupPump)) {
-      intents.push({ kind: 'pickup', actorId: this.actorId });
-      intents.push({ kind: 'pump', actorId: this.actorId });
+      const isHolding = Object.values(snapshot.bombs).some(
+        (b) =>
+          (b as { state: { kind: string; holderActorId?: string } }).state.kind === 'held' &&
+          (b as { state: { holderActorId?: string } }).state.holderActorId === this.actorId,
+      );
+      if (isHolding) {
+        intents.push({ kind: 'pump', actorId: this.actorId });
+      } else {
+        intents.push({ kind: 'pickup', actorId: this.actorId });
+      }
     }
 
     // Throw

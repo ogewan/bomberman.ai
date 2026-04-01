@@ -46,5 +46,6 @@ export type BombState = {
   cell: Vec3i;
   power: number;
   fuseTicksRemaining: number;
+  initialFuseTicks: number;
   state: BombMotionState;
 };

@@ -5,6 +5,7 @@
 
 import { Canvas } from '@react-three/fiber';
 import type { RenderModel } from '@bomberman65/game-core';
+import type { Vec3i } from '@bomberman65/shared';
 import { SemiIsometricCamera } from '../camera/SemiIsometricCamera.js';
 import { TerrainLayer } from '../terrain/TerrainLayer.js';
 import { ActorLayer } from '../actors/ActorLayer.js';
@@ -18,6 +19,7 @@ export type SceneRootProps = {
   showDebugCoordinates?: boolean;
   onSelectActor?: (id: string) => void;
   onSelectBomb?: (id: string) => void;
+  onSelectCell?: (pos: Vec3i) => void;
 };
 
 export function SceneRoot({
@@ -26,6 +28,7 @@ export function SceneRoot({
   showDebugCoordinates = false,
   onSelectActor,
   onSelectBomb,
+  onSelectCell,
 }: SceneRootProps) {
   return (
     <Canvas style={{ width: '100%', height: '100%' }}>
@@ -38,15 +41,24 @@ export function SceneRoot({
       <ambientLight intensity={0.6} />
       <directionalLight position={[10, -10, 15]} intensity={0.8} />
 
+      {/* Ground plane — click to select empty cells */}
       <mesh
         rotation={[0, 0, 0]}
         position={[renderModel.gridSize.x / 2 - 0.5, renderModel.gridSize.y / 2 - 0.5, -0.5]}
+        onClick={(e) => {
+          const point = e.point;
+          const x = Math.round(point.x);
+          const y = Math.round(point.y);
+          if (x >= 0 && x < renderModel.gridSize.x && y >= 0 && y < renderModel.gridSize.y) {
+            onSelectCell?.({ x, y, z: 0 });
+          }
+        }}
       >
         <planeGeometry args={[renderModel.gridSize.x + 1, renderModel.gridSize.y + 1]} />
         <meshStandardMaterial color="#2a2a2a" />
       </mesh>
 
-      <TerrainLayer terrain={renderModel.terrain} />
+      <TerrainLayer terrain={renderModel.terrain} onSelectCell={onSelectCell} />
       <ActorLayer actors={renderModel.actors} onSelectActor={onSelectActor} />
       <BombLayer
         bombs={renderModel.bombs}

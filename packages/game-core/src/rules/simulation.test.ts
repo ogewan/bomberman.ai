@@ -256,6 +256,7 @@ describe('Explosion', () => {
       cell: { x: 2, y: 1, z: 0 },
       power: 1,
       fuseTicksRemaining: 2,
+      initialFuseTicks: 2,
       state: { kind: 'idle' },
     };
     const bomb = snapshot.bombs[bombId]!;
@@ -282,6 +283,7 @@ describe('Explosion', () => {
       cell: { x: 2, y: 1, z: 0 },
       power: 2,
       fuseTicksRemaining: 1,
+      initialFuseTicks: 1,
       state: { kind: 'idle' },
     };
 
@@ -307,6 +309,7 @@ describe('Explosion', () => {
       cell: { x: 3, y: 2, z: 0 },
       power: 2,
       fuseTicksRemaining: 1,
+      initialFuseTicks: 1,
       state: { kind: 'idle' },
     };
 
@@ -329,6 +332,7 @@ describe('Explosion', () => {
       cell: { x: 3, y: 2, z: 0 },
       power: 2,
       fuseTicksRemaining: 1,
+      initialFuseTicks: 1,
       state: { kind: 'idle' },
     };
 
@@ -374,6 +378,7 @@ describe('SimulationRunner', () => {
       cell: { x: 3, y: 2, z: 0 },
       power: 2,
       fuseTicksRemaining: 1,
+      initialFuseTicks: 1,
       state: { kind: 'idle' },
     };
 

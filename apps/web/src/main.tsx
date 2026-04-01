@@ -51,6 +51,10 @@ function App() {
 
   const handleSelectActor = useCallback((id: string) => select({ kind: 'actor', id }), [select]);
   const handleSelectBomb = useCallback((id: string) => select({ kind: 'bomb', id }), [select]);
+  const handleSelectCell = useCallback(
+    (pos: { x: number; y: number; z: number }) => select({ kind: 'cell', position: pos }),
+    [select],
+  );
 
   // Load manifest on mount
   useEffect(() => {
@@ -260,6 +264,7 @@ function App() {
             showDebugCoordinates={showDebugCoords}
             onSelectActor={handleSelectActor}
             onSelectBomb={handleSelectBomb}
+            onSelectCell={handleSelectCell}
           />
         ) : (
           <div

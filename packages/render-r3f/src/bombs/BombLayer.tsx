@@ -1,6 +1,6 @@
 /**
  * BombLayer — renders bombs as spheres and explosions as translucent cubes.
- * Held bombs float above their holder.
+ * Held bombs float above holder. Pumped bombs render larger. Interpolates motion.
  */
 
 import type { BombVisual } from '@bomberman65/game-core';
@@ -19,15 +19,15 @@ export function BombLayer({ bombs, explosionCells, onSelectBomb }: BombLayerProp
         if (bomb.isExploding) return null;
 
         const color = getBombColor(bomb);
-        // Held bombs float above the holder
+        const pos = interpolateBombPosition(bomb);
         const zOffset = bomb.isHeld ? 1.4 : 0.3;
-        const scale = bomb.isHeld ? 0.7 : 1;
+        const sizeScale = bomb.isHeld ? 0.7 : bomb.type === 'pumped' ? 1.3 : 1;
 
         return (
           <mesh
             key={bomb.id}
-            position={[bomb.position.x, bomb.position.y, bomb.position.z + zOffset]}
-            scale={[scale, scale, scale]}
+            position={[pos.x, pos.y, pos.z + zOffset]}
+            scale={[sizeScale, sizeScale, sizeScale]}
             onClick={(e) => {
               e.stopPropagation();
               onSelectBomb?.(bomb.id);
@@ -53,8 +53,20 @@ export function BombLayer({ bombs, explosionCells, onSelectBomb }: BombLayerProp
   );
 }
 
+function interpolateBombPosition(bomb: BombVisual) {
+  if (!bomb.motionFrom || !bomb.motionTo || bomb.motionProgress === 0) {
+    return bomb.position;
+  }
+  const t = bomb.motionProgress;
+  return {
+    x: bomb.motionFrom.x + (bomb.motionTo.x - bomb.motionFrom.x) * t,
+    y: bomb.motionFrom.y + (bomb.motionTo.y - bomb.motionFrom.y) * t,
+    z: bomb.motionFrom.z + (bomb.motionTo.z - bomb.motionFrom.z) * t,
+  };
+}
+
 function getBombColor(bomb: BombVisual): string {
-  const t = bomb.fuseProgress;
+  const t = Math.max(0, Math.min(1, bomb.fuseProgress));
   if (bomb.type === 'regular') {
     const r = Math.floor(t * 255);
     const b = Math.floor((1 - t) * 255);
