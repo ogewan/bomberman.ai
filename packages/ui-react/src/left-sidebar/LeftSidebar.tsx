@@ -10,6 +10,15 @@ import { Accordion } from '../layout/Accordion.js';
 import { MatchConfigEditor } from '../controls/MatchConfigEditor.js';
 import type { MapSelectorProps } from '../app-shell/AppShell.js';
 
+function KeybindRow({ keys, action }: { keys: string; action: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+      <span style={{ color: '#aaa', fontFamily: 'monospace' }}>{keys}</span>
+      <span>{action}</span>
+    </div>
+  );
+}
+
 export type LeftSidebarProps = {
   runInfo?: { runId: string; mapId: string; seed: number; tick: number };
   mapSelector?: MapSelectorProps;
@@ -101,6 +110,20 @@ export function LeftSidebar({
       {/* Batch */}
       <Accordion title="Batch" enabled={gameState === 'batch'} defaultOpen={false}>
         <div style={{ fontSize: 11, color: '#888' }}>Batch job management (future).</div>
+      </Accordion>
+
+      {/* Keybinds — always enabled, reference only */}
+      <Accordion title="Keybinds" enabled={true} defaultOpen={false}>
+        <div style={{ fontSize: 11 }}>
+          <KeybindRow keys="W / ↑" action="Move Up" />
+          <KeybindRow keys="S / ↓" action="Move Down" />
+          <KeybindRow keys="A / ←" action="Move Left" />
+          <KeybindRow keys="D / →" action="Move Right" />
+          <KeybindRow keys="Space" action="Place Bomb" />
+          <KeybindRow keys="E" action="Pickup / Pump" />
+          <KeybindRow keys="Q" action="Throw" />
+          <KeybindRow keys="F" action="Kick" />
+        </div>
       </Accordion>
     </div>
   );

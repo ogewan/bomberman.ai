@@ -1,5 +1,5 @@
 /**
- * BottomBar — non-log statistics, session info, timeline.
+ * BottomBar — non-log statistics, session info, and control hints.
  */
 
 import { useSessionStore, useWorkerStatusStore } from '@bomberman65/app-state';
@@ -15,6 +15,8 @@ export function BottomBar({ actorCount, bombCount }: BottomBarProps) {
   const speed = useSessionStore((s) => s.playbackSpeed);
   const workerActive = useWorkerStatusStore((s) => s.workerActive);
 
+  const isRunning = gameState === 'playing' || gameState === 'paused';
+
   return (
     <>
       <span>Tick: {tick}</span>
@@ -22,6 +24,13 @@ export function BottomBar({ actorCount, bombCount }: BottomBarProps) {
       <span>Speed: {speed}x</span>
       {actorCount !== undefined && <span>Actors: {actorCount}</span>}
       {bombCount !== undefined && <span>Bombs: {bombCount}</span>}
+
+      {isRunning && (
+        <span style={{ color: '#888', marginLeft: 8 }}>
+          WASD:Move Space:Bomb E:Pickup/Pump Q:Throw F:Kick
+        </span>
+      )}
+
       <span style={{ marginLeft: 'auto' }}>Worker: {workerActive ? 'Active' : 'Idle'}</span>
     </>
   );
