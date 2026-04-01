@@ -9,23 +9,23 @@
  * - Chain detonation: bombs in affected cells detonate immediately
  */
 
-import type { BombState, WorldSnapshot, Vec3i } from '@bomberman65/shared';
+import type { BombState, MatchConfig, WorldSnapshot, Vec3i } from '@bomberman65/shared';
 import { CARDINAL_DIRECTIONS, DIRECTION_TO_VECTOR } from '@bomberman65/shared';
 import { getCell, isInBounds } from '../world/gridHelpers.js';
 
 /** Transition bombs whose fuse has reached zero into exploding state. */
-export function transitionExpiredBombs(snapshot: WorldSnapshot): void {
+export function transitionExpiredBombs(snapshot: WorldSnapshot, config: MatchConfig): void {
   for (const bomb of Object.values(snapshot.bombs) as BombState[]) {
     if (bomb.state.kind === 'removed' || bomb.state.kind === 'exploding') continue;
 
     if (bomb.fuseTicksRemaining <= 0) {
-      detonateBomb(snapshot, bomb);
+      detonateBomb(snapshot, bomb, config);
     }
   }
 }
 
 /** Detonate a single bomb — compute affected cells and transition to exploding. */
-export function detonateBomb(snapshot: WorldSnapshot, bomb: BombState): void {
+export function detonateBomb(snapshot: WorldSnapshot, bomb: BombState, config: MatchConfig): void {
   // Determine origin — for held/thrown bombs, use current cell
   const origin = { ...bomb.cell };
 
@@ -45,7 +45,7 @@ export function detonateBomb(snapshot: WorldSnapshot, bomb: BombState): void {
   bomb.state = {
     kind: 'exploding',
     origin,
-    ticksRemaining: 30, // TODO: use config.explosionDurationTicks
+    ticksRemaining: config.explosionDurationTicks,
     affectedCells,
   };
 }

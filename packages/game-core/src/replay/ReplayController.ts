@@ -73,7 +73,7 @@ export class ReplayController {
     while (this.currentTick < clampedTick) {
       const entry = this.log.entries[this.currentTick];
       if (!entry) break;
-      executeTick(this.currentSnapshot, entry.intents as ActorIntent[]);
+      executeTick(this.currentSnapshot, entry.intents as ActorIntent[], this.log.config);
       this.currentTick++;
     }
   }
@@ -85,7 +85,7 @@ export class ReplayController {
     const entry = this.log.entries[this.currentTick];
     if (!entry) return false;
 
-    executeTick(this.currentSnapshot, entry.intents as ActorIntent[]);
+    executeTick(this.currentSnapshot, entry.intents as ActorIntent[], this.log.config);
     this.currentTick++;
     return true;
   }

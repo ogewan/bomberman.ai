@@ -12,7 +12,7 @@
  *   8. Cleanup
  */
 
-import type { ActorIntent, WorldSnapshot } from '@bomberman65/shared';
+import type { ActorIntent, MatchConfig, WorldSnapshot } from '@bomberman65/shared';
 import { validateIntents } from '../rules/intentValidation.js';
 import { advanceTimers } from '../rules/timerAdvancement.js';
 import { applyMoveIntents, resolveSurfaceTravelPhases } from '../rules/movementResolution.js';
@@ -23,15 +23,17 @@ import { transitionExpiredBombs } from '../rules/explosionPropagation.js';
 import { applyBlastEffects, cleanup } from '../rules/blastEffects.js';
 
 /** Execute a single tick on the world snapshot, mutating it in place. */
-export function executeTick(snapshot: WorldSnapshot, intents: ActorIntent[]): void {
-  // Step 1: Intents are already collected and passed in
-
+export function executeTick(
+  snapshot: WorldSnapshot,
+  intents: ActorIntent[],
+  config: MatchConfig,
+): void {
   // Step 2: Validate intent preconditions
   const validIntents = validateIntents(snapshot, intents);
 
   // Step 2b: Apply validated intents (start movement, place bombs, kick, etc.)
-  applyMoveIntents(snapshot, validIntents);
-  applyBombIntents(snapshot, validIntents);
+  applyMoveIntents(snapshot, validIntents, config);
+  applyBombIntents(snapshot, validIntents, config);
 
   // Step 3: Advance timers
   advanceTimers(snapshot);
@@ -44,11 +46,10 @@ export function executeTick(snapshot: WorldSnapshot, intents: ActorIntent[]): vo
   resolveFallingAndBounds(snapshot);
 
   // Step 5: Transition bombs with zero fuse to exploding
-  transitionExpiredBombs(snapshot);
+  transitionExpiredBombs(snapshot, config);
 
   // Steps 6-7: Apply blast effects (breakable destruction, elimination, chain detonation)
-  // Note: affectedCells are computed during detonation in step 5
-  applyBlastEffects(snapshot);
+  applyBlastEffects(snapshot, config);
 
   // Step 8: Cleanup
   cleanup(snapshot);

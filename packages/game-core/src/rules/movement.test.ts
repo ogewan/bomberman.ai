@@ -4,8 +4,15 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { ActorState, WorldSnapshot } from '@bomberman65/shared';
+import type { ActorState, MatchConfig, WorldSnapshot } from '@bomberman65/shared';
+import { DEFAULT_MATCH_CONFIG } from '@bomberman65/shared';
 import { executeTick } from '../run/TickPipeline.js';
+
+const defaultConfig = { ...DEFAULT_MATCH_CONFIG, mapId: 'test', seed: 1 } as MatchConfig;
+
+function tick(snapshot: WorldSnapshot, intents: Parameters<typeof executeTick>[1] = []) {
+  executeTick(snapshot, intents, defaultConfig);
+}
 
 function makeSnapshot(): WorldSnapshot {
   const cells = [];
@@ -53,7 +60,7 @@ describe('Movement blocked scenarios', () => {
     snapshot.cells[0]![2]![2]!.terrain = 'breakable';
     const actor = addActor(snapshot, 'a1', 1, 2);
 
-    executeTick(snapshot, [{ kind: 'move', actorId: 'a1', direction: 'east' }]);
+    tick(snapshot, [{ kind: 'move', actorId: 'a1', direction: 'east' }]);
 
     // Actor tried to move east toward breakable — should stay idle
     expect(actor.state.kind).toBe('idle');
@@ -65,7 +72,7 @@ describe('Movement blocked scenarios', () => {
     addActor(snapshot, 'a1', 1, 2);
     addActor(snapshot, 'a2', 2, 2);
 
-    executeTick(snapshot, [{ kind: 'move', actorId: 'a1', direction: 'east' }]);
+    tick(snapshot, [{ kind: 'move', actorId: 'a1', direction: 'east' }]);
 
     const a1 = snapshot.actors['a1'] as ActorState;
     expect(a1.state.kind).toBe('idle');
@@ -77,7 +84,7 @@ describe('Movement blocked scenarios', () => {
     const actor = addActor(snapshot, 'a1', 2, 2);
     actor.stunTicksRemaining = 10;
 
-    executeTick(snapshot, [{ kind: 'move', actorId: 'a1', direction: 'south' }]);
+    tick(snapshot, [{ kind: 'move', actorId: 'a1', direction: 'south' }]);
 
     expect(actor.cell).toEqual({ x: 2, y: 2, z: 0 });
   });
@@ -90,11 +97,11 @@ describe('Item collection', () => {
     const actor = addActor(snapshot, 'a1', 1, 2);
 
     // Start move east
-    executeTick(snapshot, [{ kind: 'move', actorId: 'a1', direction: 'east' }]);
+    tick(snapshot, [{ kind: 'move', actorId: 'a1', direction: 'east' }]);
 
     // Run enough ticks for movement to complete
     for (let i = 0; i < 35; i++) {
-      executeTick(snapshot, []);
+      tick(snapshot, []);
     }
 
     expect(actor.cell).toEqual({ x: 2, y: 2, z: 0 });
@@ -108,9 +115,9 @@ describe('Item collection', () => {
     const actor = addActor(snapshot, 'a1', 1, 2);
     expect(actor.upgrade).toBe('none');
 
-    executeTick(snapshot, [{ kind: 'move', actorId: 'a1', direction: 'east' }]);
+    tick(snapshot, [{ kind: 'move', actorId: 'a1', direction: 'east' }]);
     for (let i = 0; i < 35; i++) {
-      executeTick(snapshot, []);
+      tick(snapshot, []);
     }
 
     expect(actor.upgrade).toBe('kick');
@@ -168,7 +175,7 @@ describe('Falling', () => {
     snapshot.actors['high_actor'] = actor;
     snapshot.cells[1]![2]![2]!.occupant = { kind: 'actor', id: 'high_actor' };
 
-    executeTick(snapshot, []);
+    tick(snapshot, []);
 
     // Wall at z=0 supports — actor stays at z=1
     expect(actor.cell.z).toBe(1);

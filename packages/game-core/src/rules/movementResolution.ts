@@ -9,7 +9,13 @@
  * - During entering, entity is considered at destination cell
  */
 
-import type { ActorIntent, ActorState, BombState, WorldSnapshot } from '@bomberman65/shared';
+import type {
+  ActorIntent,
+  ActorState,
+  BombState,
+  MatchConfig,
+  WorldSnapshot,
+} from '@bomberman65/shared';
 import {
   getCell,
   getNeighbor,
@@ -20,7 +26,11 @@ import {
 } from '../world/gridHelpers.js';
 
 /** Apply validated move intents — start surface travel for idle actors. */
-export function applyMoveIntents(snapshot: WorldSnapshot, intents: ActorIntent[]): void {
+export function applyMoveIntents(
+  snapshot: WorldSnapshot,
+  intents: ActorIntent[],
+  config: MatchConfig,
+): void {
   for (const intent of intents) {
     if (intent.kind !== 'move') continue;
     const actor = snapshot.actors[intent.actorId] as ActorState | undefined;
@@ -38,7 +48,7 @@ export function applyMoveIntents(snapshot: WorldSnapshot, intents: ActorIntent[]
     // TODO: ramp traversal rules (check entry/exit validity)
 
     // Start surface travel
-    const totalTicks = 30; // Will use config.actorMoveTicks once wired
+    const totalTicks = config.actorMoveTicks;
     const leavingTicks = Math.floor(totalTicks / 2);
 
     actor.facing = intent.direction;

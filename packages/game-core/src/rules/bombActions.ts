@@ -6,6 +6,7 @@ import type {
   ActorIntent,
   ActorState,
   BombState,
+  MatchConfig,
   WorldSnapshot,
   Direction2D,
 } from '@bomberman65/shared';
@@ -14,37 +15,39 @@ import { getCell, getNeighbor, clearOccupant } from '../world/gridHelpers.js';
 let bombCounter = 0;
 
 /** Apply all bomb-related intents from the validated intent list. */
-export function applyBombIntents(snapshot: WorldSnapshot, intents: ActorIntent[]): void {
+export function applyBombIntents(
+  snapshot: WorldSnapshot,
+  intents: ActorIntent[],
+  config: MatchConfig,
+): void {
   for (const intent of intents) {
     const actor = snapshot.actors[intent.actorId] as ActorState | undefined;
     if (!actor) continue;
 
     switch (intent.kind) {
       case 'placeBomb':
-        placeBomb(snapshot, actor);
+        placeBomb(snapshot, actor, config);
         break;
       case 'kick':
-        kickBomb(snapshot, actor, intent.direction);
+        kickBomb(snapshot, actor, intent.direction, config);
         break;
       case 'pickup':
         pickupBomb(snapshot, actor);
         break;
       case 'pump':
-        pumpBomb(snapshot, actor);
+        pumpBomb(snapshot, actor, config);
         break;
       case 'throw':
-        throwHeldEntity(snapshot, actor, intent.direction);
+        throwHeldEntity(snapshot, actor, intent.direction, config);
         break;
     }
   }
 }
 
-function placeBomb(snapshot: WorldSnapshot, actor: ActorState): void {
+function placeBomb(snapshot: WorldSnapshot, actor: ActorState, config: MatchConfig): void {
   const cell = getCell(snapshot, actor.cell);
   if (!cell) return;
 
-  // Can only place if actor is on the cell and no bomb occupant already
-  // (actor is the occupant, so we need to check if there's a bomb at this position already)
   const existingBomb = Object.values(snapshot.bombs).find(
     (b) =>
       (b as BombState).cell.x === actor.cell.x &&
@@ -55,7 +58,6 @@ function placeBomb(snapshot: WorldSnapshot, actor: ActorState): void {
   if (existingBomb) return;
 
   const bombId = `bomb_${++bombCounter}`;
-  const config = findMatchConfig(snapshot);
 
   const bomb: BombState = {
     id: bombId,
@@ -68,10 +70,14 @@ function placeBomb(snapshot: WorldSnapshot, actor: ActorState): void {
   };
 
   snapshot.bombs[bombId] = bomb;
-  // Note: actor already occupies the cell, bomb shares position until actor moves away
 }
 
-function kickBomb(snapshot: WorldSnapshot, actor: ActorState, direction: Direction2D): void {
+function kickBomb(
+  snapshot: WorldSnapshot,
+  actor: ActorState,
+  direction: Direction2D,
+  config: MatchConfig,
+): void {
   if (actor.upgrade !== 'kick') return;
 
   const targetPos = getNeighbor(actor.cell, direction);
@@ -79,10 +85,9 @@ function kickBomb(snapshot: WorldSnapshot, actor: ActorState, direction: Directi
   if (!targetCell || !targetCell.occupant || targetCell.occupant.kind !== 'bomb') return;
 
   const bomb = snapshot.bombs[targetCell.occupant.id] as BombState | undefined;
-  if (!bomb || bomb.bombType !== 'regular') return; // Only regular bombs can be kicked
+  if (!bomb || bomb.bombType !== 'regular') return;
   if (bomb.state.kind !== 'idle') return;
 
-  const config = findMatchConfig(snapshot);
   const totalTicks = config.kickedBombTravelTicks;
   const leavingTicks = Math.floor(totalTicks / 2);
 
@@ -103,7 +108,6 @@ function kickBomb(snapshot: WorldSnapshot, actor: ActorState, direction: Directi
 function pickupBomb(snapshot: WorldSnapshot, actor: ActorState): void {
   if (actor.upgrade !== 'carryPump') return;
 
-  // Find an idle regular bomb at actor's cell or adjacent facing cell
   const facingPos = getNeighbor(actor.cell, actor.facing);
   const facingCell = getCell(snapshot, facingPos);
 
@@ -111,16 +115,14 @@ function pickupBomb(snapshot: WorldSnapshot, actor: ActorState): void {
     const bomb = snapshot.bombs[facingCell.occupant.id] as BombState | undefined;
     if (!bomb || bomb.bombType !== 'regular' || bomb.state.kind !== 'idle') return;
 
-    // Pick up bomb
     clearOccupant(snapshot, facingPos);
     bomb.state = { kind: 'held', holderActorId: actor.id };
   }
 }
 
-function pumpBomb(snapshot: WorldSnapshot, actor: ActorState): void {
+function pumpBomb(snapshot: WorldSnapshot, actor: ActorState, config: MatchConfig): void {
   if (actor.upgrade !== 'carryPump') return;
 
-  // Find held regular bomb owned by this actor
   const heldBomb = Object.values(snapshot.bombs).find(
     (b) =>
       (b as BombState).state.kind === 'held' &&
@@ -130,12 +132,15 @@ function pumpBomb(snapshot: WorldSnapshot, actor: ActorState): void {
 
   if (!heldBomb) return;
   heldBomb.bombType = 'pumped';
-
-  const config = findMatchConfig(snapshot);
   heldBomb.fuseTicksRemaining = config.pumpedBombFuseTicks;
 }
 
-function throwHeldEntity(snapshot: WorldSnapshot, actor: ActorState, direction: Direction2D): void {
+function throwHeldEntity(
+  snapshot: WorldSnapshot,
+  actor: ActorState,
+  direction: Direction2D,
+  config: MatchConfig,
+): void {
   // Find held bomb
   const heldBomb = Object.values(snapshot.bombs).find(
     (b) =>
@@ -144,7 +149,6 @@ function throwHeldEntity(snapshot: WorldSnapshot, actor: ActorState, direction: 
   ) as BombState | undefined;
 
   if (heldBomb) {
-    const config = findMatchConfig(snapshot);
     const totalTicks = config.thrownTravelTicks;
     const leavingTicks = Math.floor(totalTicks / 2);
     const dest = getNeighbor(actor.cell, direction);
@@ -155,7 +159,7 @@ function throwHeldEntity(snapshot: WorldSnapshot, actor: ActorState, direction: 
       from: { ...actor.cell },
       to: { ...dest },
       direction,
-      remainingDistance: actor.power + 2, // Throw distance based on power
+      remainingDistance: actor.power + 2,
       phase: 'leaving',
       phaseTicksElapsed: 0,
       phaseTicksTotal: leavingTicks,
@@ -172,7 +176,6 @@ function throwHeldEntity(snapshot: WorldSnapshot, actor: ActorState, direction: 
   ) as ActorState | undefined;
 
   if (heldActor) {
-    const config = findMatchConfig(snapshot);
     const totalTicks = config.thrownTravelTicks;
     const leavingTicks = Math.floor(totalTicks / 2);
     const dest = getNeighbor(actor.cell, direction);
@@ -190,19 +193,4 @@ function throwHeldEntity(snapshot: WorldSnapshot, actor: ActorState, direction: 
       interactionLocked: true,
     };
   }
-}
-
-/**
- * Extract match config timing values from the snapshot.
- * In the real system, config is stored on SimulationRun, not on WorldSnapshot.
- * This helper returns defaults until we thread config through properly.
- */
-function findMatchConfig(_snapshot: WorldSnapshot) {
-  // TODO: thread MatchConfig through the tick pipeline
-  return {
-    regularBombFuseTicks: 120,
-    pumpedBombFuseTicks: 120,
-    kickedBombTravelTicks: 20,
-    thrownTravelTicks: 20,
-  };
 }

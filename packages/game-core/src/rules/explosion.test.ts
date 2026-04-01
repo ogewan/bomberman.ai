@@ -5,8 +5,15 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { BombState, WorldSnapshot, Vec3i } from '@bomberman65/shared';
+import type { BombState, MatchConfig, WorldSnapshot, Vec3i } from '@bomberman65/shared';
+import { DEFAULT_MATCH_CONFIG } from '@bomberman65/shared';
 import { executeTick } from '../run/TickPipeline.js';
+
+const defaultConfig = { ...DEFAULT_MATCH_CONFIG, mapId: 'test', seed: 1 } as MatchConfig;
+
+function tick(snapshot: WorldSnapshot, intents: never[] = []) {
+  executeTick(snapshot, intents, defaultConfig);
+}
 
 function makeSnapshot(overrides?: Partial<WorldSnapshot>): WorldSnapshot {
   // 5x5x1 grid: walls on edges, empty interior
@@ -59,7 +66,7 @@ describe('Regular explosion propagation', () => {
     const snapshot = makeSnapshot();
     const bomb = placeBomb(snapshot, { x: 2, y: 2, z: 0 }, 2, 1);
 
-    executeTick(snapshot, []);
+    tick(snapshot);
 
     expect(bomb.state.kind).toBe('exploding');
     if (bomb.state.kind === 'exploding') {
@@ -81,7 +88,7 @@ describe('Regular explosion propagation', () => {
     const snapshot = makeSnapshot();
     placeBomb(snapshot, { x: 1, y: 1, z: 0 }, 3, 1);
 
-    executeTick(snapshot, []);
+    tick(snapshot);
 
     const bomb = Object.values(snapshot.bombs)[0] as BombState;
     if (bomb.state.kind === 'exploding') {
@@ -97,7 +104,7 @@ describe('Regular explosion propagation', () => {
     snapshot.cells[0]![2]![2]!.terrain = 'breakable';
     placeBomb(snapshot, { x: 1, y: 2, z: 0 }, 3, 1);
 
-    executeTick(snapshot, []);
+    tick(snapshot);
 
     const bomb = Object.values(snapshot.bombs)[0] as BombState;
     if (bomb.state.kind === 'exploding') {
@@ -115,7 +122,7 @@ describe('Pumped explosion propagation', () => {
     const snapshot = makeSnapshot();
     placeBomb(snapshot, { x: 2, y: 2, z: 0 }, 2, 1, 'pumped');
 
-    executeTick(snapshot, []);
+    tick(snapshot);
 
     const bomb = Object.values(snapshot.bombs)[0] as BombState;
     if (bomb.state.kind === 'exploding') {
@@ -133,7 +140,7 @@ describe('Chain detonation', () => {
     // Bomb B at (3,2) with fuse=999 (won't expire on its own), power=1
     placeBomb(snapshot, { x: 3, y: 2, z: 0 }, 1, 999, 'regular', 'bombB');
 
-    executeTick(snapshot, []);
+    tick(snapshot);
 
     // Bomb A explodes and its blast reaches (3,2) where bomb B is
     const bombB = snapshot.bombs['bombB'] as BombState;
@@ -150,9 +157,9 @@ describe('Breakable destruction', () => {
 
     expect(snapshot.cells[0]![2]![2]!.terrain).toBe('breakable');
 
-    executeTick(snapshot, []);
+    tick(snapshot);
     // Need a second tick for blast effects to apply
-    executeTick(snapshot, []);
+    tick(snapshot);
 
     expect(snapshot.cells[0]![2]![2]!.terrain).toBe('empty');
   });

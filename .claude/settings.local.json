@@ -12,7 +12,12 @@
       "Bash(pnpm test:*)",
       "Bash(pnpm add:*)",
       "Bash(pnpm approve-builds:*)",
-      "Bash(pnpm install:*)"
+      "Bash(pnpm install:*)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -n \"stun\\\\|held\\\\|recover\" /c/wamp64/www/__active/bomberman26/packages/game-core/src/rules/*.ts)",
+      "Bash(grep -n \"GameState\\\\|batch\\\\|setup\\\\|inspection\" /c/wamp64/www/__active/bomberman26/packages/app-state/src/*.ts)",
+      "Bash(grep -n \"TODO\\\\|TODO:\" /c/wamp64/www/__active/bomberman26/packages/game-core/src/rules/*.ts)",
+      "Bash(find /c/wamp64/www/__active/bomberman26/packages/render-r3f -type f -name *.tsx)"
     ]
   }
 }

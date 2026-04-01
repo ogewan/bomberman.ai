@@ -105,6 +105,16 @@ function getActor(snapshot: WorldSnapshot, partialId: string): ActorState {
   return actor;
 }
 
+const defaultConfig = makeConfig();
+
+function tick(
+  snapshot: WorldSnapshot,
+  intents: ActorIntent[] = [],
+  configOverrides?: Partial<MatchConfig>,
+) {
+  executeTick(snapshot, intents, configOverrides ? makeConfig(configOverrides) : defaultConfig);
+}
+
 // --- Tests ---
 
 describe('World construction', () => {
@@ -150,7 +160,7 @@ describe('Movement', () => {
     const actor = getActor(snapshot, 'sp1');
     const startCell = { ...actor.cell };
 
-    executeTick(snapshot, [{ kind: 'idle', actorId: actor.id }]);
+    tick(snapshot, [{ kind: 'idle', actorId: actor.id }]);
 
     expect(actor.cell).toEqual(startCell);
     expect(actor.state.kind).toBe('idle');
@@ -161,7 +171,7 @@ describe('Movement', () => {
     const snapshot = run.snapshot;
     const actor = getActor(snapshot, 'sp1');
 
-    executeTick(snapshot, [{ kind: 'move', actorId: actor.id, direction: 'east' }]);
+    tick(snapshot, [{ kind: 'move', actorId: actor.id, direction: 'east' }]);
 
     expect(actor.state.kind).toBe('surfaceTravel');
     if (actor.state.kind === 'surfaceTravel') {
@@ -177,7 +187,7 @@ describe('Movement', () => {
     const actor = getActor(snapshot, 'sp1');
 
     // North is a wall at y=0
-    executeTick(snapshot, [{ kind: 'move', actorId: actor.id, direction: 'north' }]);
+    tick(snapshot, [{ kind: 'move', actorId: actor.id, direction: 'north' }]);
 
     expect(actor.state.kind).toBe('idle');
     expect(actor.cell).toEqual({ x: 1, y: 1, z: 0 });
@@ -189,11 +199,11 @@ describe('Movement', () => {
     const actor = getActor(snapshot, 'sp1');
 
     // Start move east (to breakable at 2,2 is blocked, but 2,1 is empty)
-    executeTick(snapshot, [{ kind: 'move', actorId: actor.id, direction: 'east' }]);
+    tick(snapshot, [{ kind: 'move', actorId: actor.id, direction: 'east' }]);
 
     // Run enough ticks for move to complete (30 ticks default)
     for (let i = 0; i < 35; i++) {
-      executeTick(snapshot, []);
+      tick(snapshot, []);
     }
 
     expect(actor.state.kind).toBe('idle');
@@ -207,7 +217,7 @@ describe('Bomb placement', () => {
     const snapshot = run.snapshot;
     const actor = getActor(snapshot, 'sp1');
 
-    executeTick(snapshot, [{ kind: 'placeBomb', actorId: actor.id }]);
+    tick(snapshot, [{ kind: 'placeBomb', actorId: actor.id }]);
 
     const bombs = Object.values(snapshot.bombs) as BombState[];
     expect(bombs.length).toBe(1);
@@ -223,11 +233,11 @@ describe('Bomb placement', () => {
     expect(actor.count).toBe(1); // Default count is 1
 
     // Place first bomb
-    executeTick(snapshot, [{ kind: 'placeBomb', actorId: actor.id }]);
+    tick(snapshot, [{ kind: 'placeBomb', actorId: actor.id }]);
     expect(Object.keys(snapshot.bombs)).toHaveLength(1);
 
     // Try to place second — should be rejected
-    executeTick(snapshot, [{ kind: 'placeBomb', actorId: actor.id }]);
+    tick(snapshot, [{ kind: 'placeBomb', actorId: actor.id }]);
     expect(Object.keys(snapshot.bombs)).toHaveLength(1);
   });
 });
@@ -251,11 +261,11 @@ describe('Explosion', () => {
     const bomb = snapshot.bombs[bombId]!;
 
     // Tick 1: fuse 2→1
-    executeTick(snapshot, []);
+    tick(snapshot, []);
     expect(bomb.state.kind).toBe('idle');
 
     // Tick 2: fuse 1→0, then transition to exploding
-    executeTick(snapshot, []);
+    tick(snapshot, []);
     expect(bomb.state.kind).toBe('exploding');
   });
 
@@ -278,8 +288,8 @@ describe('Explosion', () => {
     expect(snapshot.cells[0]![2]![2]!.terrain).toBe('breakable');
 
     // Tick to detonate
-    executeTick(snapshot, []);
-    executeTick(snapshot, []);
+    tick(snapshot, []);
+    tick(snapshot, []);
 
     expect(snapshot.cells[0]![2]![2]!.terrain).toBe('empty');
   });
@@ -300,8 +310,8 @@ describe('Explosion', () => {
       state: { kind: 'idle' },
     };
 
-    executeTick(snapshot, []);
-    executeTick(snapshot, []);
+    tick(snapshot, []);
+    tick(snapshot, []);
 
     expect(actor2.state.kind).toBe('eliminated');
   });
@@ -322,8 +332,8 @@ describe('Explosion', () => {
       state: { kind: 'idle' },
     };
 
-    executeTick(snapshot, []);
-    executeTick(snapshot, []);
+    tick(snapshot, []);
+    tick(snapshot, []);
 
     expect(actor2.state.kind).not.toBe('eliminated');
   });
@@ -390,7 +400,7 @@ describe('Determinism', () => {
       const r = createTestRun(undefined, { regularBombFuseTicks: 10 });
       const snapshot = r.snapshot;
       for (let i = 0; i < 20; i++) {
-        executeTick(snapshot, intents[i] ?? []);
+        tick(snapshot, intents[i] ?? [], { regularBombFuseTicks: 10 });
       }
       return snapshot;
     }

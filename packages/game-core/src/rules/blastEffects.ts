@@ -9,13 +9,13 @@
  * - Chain detonation: bombs in affected cells detonate immediately
  */
 
-import type { ActorState, BombState, WorldSnapshot } from '@bomberman65/shared';
+import type { ActorState, BombState, MatchConfig, WorldSnapshot } from '@bomberman65/shared';
 import { vec3iEqual } from '@bomberman65/shared';
 import { getCell } from '../world/gridHelpers.js';
 import { detonateBomb } from './explosionPropagation.js';
 
 /** Apply blast effects for all currently exploding bombs. */
-export function applyBlastEffects(snapshot: WorldSnapshot): void {
+export function applyBlastEffects(snapshot: WorldSnapshot, config: MatchConfig): void {
   // Collect all affected cells from all exploding bombs
   const explodingBombs = (Object.values(snapshot.bombs) as BombState[]).filter(
     (b) => b.state.kind === 'exploding',
@@ -58,7 +58,7 @@ export function applyBlastEffects(snapshot: WorldSnapshot): void {
         if (otherBomb.state.kind === 'exploding' || otherBomb.state.kind === 'removed') continue;
 
         if (vec3iEqual(otherBomb.cell, pos)) {
-          detonateBomb(snapshot, otherBomb);
+          detonateBomb(snapshot, otherBomb, config);
         }
       }
     }

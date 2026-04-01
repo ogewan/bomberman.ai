@@ -149,7 +149,7 @@ export class SimulationRunner {
       this.recorder.recordTick(tick, intents, checkpoint);
     }
 
-    executeTick(this.run.snapshot, intents);
+    executeTick(this.run.snapshot, intents, this.run.config);
     this.checkTermination();
   }
 
