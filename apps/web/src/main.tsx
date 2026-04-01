@@ -4,8 +4,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { WorldSnapshot, MapDefinition, MatchConfig } from '@bomberman65/shared';
-import { DEFAULT_MATCH_CONFIG } from '@bomberman65/shared';
+import type { WorldSnapshot, MapDefinition, MatchConfig, KeybindConfig } from '@bomberman65/shared';
+import { DEFAULT_MATCH_CONFIG, DEFAULT_KEYBINDS } from '@bomberman65/shared';
 import {
   createSimulationRun,
   SimulationRunner,
@@ -39,6 +39,7 @@ function App() {
   const [selectedMapId, setSelectedMapId] = useState<string>('training');
   const [currentMap, setCurrentMap] = useState<MapDefinition | null>(null);
   const [configOverrides, setConfigOverrides] = useState<Partial<MatchConfig>>({});
+  const [keybinds, setKeybinds] = useState<KeybindConfig>(DEFAULT_KEYBINDS);
 
   const gameState = useSessionStore((s) => s.gameState);
   const setGameState = useSessionStore((s) => s.setGameState);
@@ -94,7 +95,7 @@ function App() {
 
     const { run } = createSimulationRun({ map: currentMap, config, spawnAssignments });
 
-    const keyboard = new KeyboardIntentCollector(spawnAssignments[0]!.actorId);
+    const keyboard = new KeyboardIntentCollector(spawnAssignments[0]!.actorId, keybinds);
     keyboard.attach();
     keyboardRef.current = keyboard;
 
@@ -107,7 +108,7 @@ function App() {
     setRunner(r);
     setGameState('playing');
     updateView(run.snapshot);
-  }, [currentMap, configOverrides, setGameState, updateView]);
+  }, [currentMap, configOverrides, keybinds, setGameState, updateView]);
 
   const handlePause = useCallback(() => {
     runner?.pause();
@@ -159,6 +160,14 @@ function App() {
       }
     };
     input.click();
+  }, []);
+
+  const handleKeybindsChange = useCallback((newKeybinds: KeybindConfig) => {
+    setKeybinds(newKeybinds);
+    // Update live keyboard collector if running
+    if (keyboardRef.current) {
+      keyboardRef.current.setKeybinds(newKeybinds);
+    }
   }, []);
 
   const handleEditMap = useCallback(() => {
@@ -235,6 +244,8 @@ function App() {
       }}
       configOverrides={configOverrides}
       onConfigChange={setConfigOverrides}
+      keybinds={keybinds}
+      onKeybindsChange={handleKeybindsChange}
       renderArea={
         gameState === 'editor' ? (
           <MapEditor

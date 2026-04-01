@@ -20,7 +20,8 @@ export type ActorVisual = {
   readonly isEliminated: boolean;
   readonly isStunned: boolean;
   readonly isShielded: boolean;
-  /** Interpolation hint: 0-1 progress through current motion phase. */
+  readonly isHeld: boolean;
+  readonly holderId?: string;
   readonly motionProgress: number;
   readonly motionFrom?: Vec3i;
   readonly motionTo?: Vec3i;
@@ -31,9 +32,10 @@ export type BombVisual = {
   readonly id: string;
   readonly position: Vec3i;
   readonly type: 'regular' | 'pumped';
-  /** 0 = just placed, 1 = about to explode. */
   readonly fuseProgress: number;
   readonly isExploding: boolean;
+  readonly isHeld: boolean;
+  readonly holderId?: string;
   readonly affectedCells?: Vec3i[];
 };
 
@@ -77,20 +79,37 @@ export function buildRenderModel(snapshot: WorldSnapshot): RenderModel {
     }
   }
 
+  // Build actor-position lookup for held entity rendering
+  const actorPositions = new Map<string, Vec3i>();
+  for (const actor of Object.values(snapshot.actors) as ActorState[]) {
+    actorPositions.set(actor.id, actor.cell);
+  }
+
   const actors: ActorVisual[] = [];
   let colorIdx = 0;
   for (const actor of Object.values(snapshot.actors) as ActorState[]) {
+    const isHeld = actor.state.kind === 'held';
+    const holderId = actor.state.kind === 'held' ? actor.state.holderActorId : undefined;
     const motionProgress = computeActorMotionProgress(actor);
+
+    // If held, position above the holder
+    let position = actor.cell;
+    if (isHeld && holderId) {
+      const holderPos = actorPositions.get(holderId);
+      if (holderPos) position = holderPos;
+    }
+
     const visual: ActorVisual = {
       id: actor.id,
-      position: actor.cell,
+      position,
       facing: actor.facing,
       color: ACTOR_COLORS[colorIdx % ACTOR_COLORS.length]!,
       isEliminated: actor.state.kind === 'eliminated',
       isStunned: actor.stunTicksRemaining > 0,
       isShielded: actor.shieldTicksRemaining > 0,
+      isHeld,
+      holderId,
       motionProgress,
-      // Interpolation spans both phases: leaving = 0→0.5, entering = 0.5→1.0
       motionFrom: actor.state.kind === 'surfaceTravel' ? actor.state.from : undefined,
       motionTo: actor.state.kind === 'surfaceTravel' ? actor.state.to : undefined,
     };
@@ -105,6 +124,8 @@ export function buildRenderModel(snapshot: WorldSnapshot): RenderModel {
     if (bomb.state.kind === 'removed') continue;
 
     const isExploding = bomb.state.kind === 'exploding';
+    const isHeld = bomb.state.kind === 'held';
+    const holderId = bomb.state.kind === 'held' ? bomb.state.holderActorId : undefined;
 
     if (isExploding && bomb.state.kind === 'exploding') {
       for (const cell of bomb.state.affectedCells) {
@@ -112,12 +133,21 @@ export function buildRenderModel(snapshot: WorldSnapshot): RenderModel {
       }
     }
 
+    // If held, position above the holder
+    let position = bomb.cell;
+    if (isHeld && holderId) {
+      const holderPos = actorPositions.get(holderId);
+      if (holderPos) position = holderPos;
+    }
+
     bombs.push({
       id: bomb.id,
-      position: bomb.cell,
+      position,
       type: bomb.bombType,
       fuseProgress: computeFuseProgress(bomb),
       isExploding,
+      isHeld,
+      holderId,
       affectedCells:
         isExploding && bomb.state.kind === 'exploding' ? bomb.state.affectedCells : undefined,
     });
@@ -133,14 +163,6 @@ export function buildRenderModel(snapshot: WorldSnapshot): RenderModel {
   };
 }
 
-/**
- * Compute continuous motion progress across both phases:
- *   leaving  phase: 0.0 → 0.5 (source center → cell boundary)
- *   entering phase: 0.5 → 1.0 (cell boundary → destination center)
- *
- * If blocked at the leaving→entering boundary, the entity returns to idle
- * at source (handled by movement resolution), so no reverse animation needed.
- */
 function computeActorMotionProgress(actor: ActorState): number {
   if (actor.state.kind !== 'surfaceTravel') return 0;
   if (actor.state.phaseTicksTotal === 0) return actor.state.phase === 'leaving' ? 0.5 : 1;
@@ -156,7 +178,6 @@ function computeActorMotionProgress(actor: ActorState): number {
 
 function computeFuseProgress(bomb: BombState): number {
   if (bomb.state.kind === 'exploding') return 1;
-  // Estimate total fuse from bomb type (defaults)
   const totalFuse = bomb.bombType === 'regular' ? 120 : 120;
   return 1 - bomb.fuseTicksRemaining / totalFuse;
 }

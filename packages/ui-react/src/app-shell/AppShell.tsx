@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import type { WorldSnapshot, MatchConfig } from '@bomberman65/shared';
+import type { WorldSnapshot, MatchConfig, KeybindConfig } from '@bomberman65/shared';
 import type { ActorState } from '@bomberman65/shared';
 import { AppLayout } from '../layout/AppLayout.js';
 import { TopBar, type TopBarProps } from '../top-bar/TopBar.js';
@@ -25,6 +25,8 @@ export type AppShellProps = {
   mapSelector?: MapSelectorProps;
   configOverrides?: Partial<MatchConfig>;
   onConfigChange?: (overrides: Partial<MatchConfig>) => void;
+  keybinds?: KeybindConfig;
+  onKeybindsChange?: (keybinds: KeybindConfig) => void;
 };
 
 export function AppShell({
@@ -34,6 +36,8 @@ export function AppShell({
   mapSelector,
   configOverrides,
   onConfigChange,
+  keybinds,
+  onKeybindsChange,
 }: AppShellProps) {
   const actorCount = snapshot
     ? (Object.values(snapshot.actors) as ActorState[]).filter((a) => a.state.kind !== 'eliminated')
@@ -52,6 +56,8 @@ export function AppShell({
           mapSelector={mapSelector}
           configOverrides={configOverrides}
           onConfigChange={onConfigChange}
+          keybinds={keybinds}
+          onKeybindsChange={onKeybindsChange}
         />
       }
       rightSidebar={<RightSidebar snapshot={snapshot} />}

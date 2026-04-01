@@ -1,6 +1,6 @@
 /**
  * BombLayer — renders bombs as spheres and explosions as translucent cubes.
- * Clickable for selection.
+ * Held bombs float above their holder.
  */
 
 import type { BombVisual } from '@bomberman65/game-core';
@@ -19,18 +19,26 @@ export function BombLayer({ bombs, explosionCells, onSelectBomb }: BombLayerProp
         if (bomb.isExploding) return null;
 
         const color = getBombColor(bomb);
+        // Held bombs float above the holder
+        const zOffset = bomb.isHeld ? 1.4 : 0.3;
+        const scale = bomb.isHeld ? 0.7 : 1;
 
         return (
           <mesh
             key={bomb.id}
-            position={[bomb.position.x, bomb.position.y, bomb.position.z + 0.3]}
+            position={[bomb.position.x, bomb.position.y, bomb.position.z + zOffset]}
+            scale={[scale, scale, scale]}
             onClick={(e) => {
               e.stopPropagation();
               onSelectBomb?.(bomb.id);
             }}
           >
             <sphereGeometry args={[0.3, 16, 16]} />
-            <meshStandardMaterial color={color} />
+            <meshStandardMaterial
+              color={color}
+              opacity={bomb.isHeld ? 0.8 : 1}
+              transparent={bomb.isHeld}
+            />
           </mesh>
         );
       })}

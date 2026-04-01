@@ -36,9 +36,12 @@ export function applyMoveIntents(
     const actor = snapshot.actors[intent.actorId] as ActorState | undefined;
     if (!actor || actor.state.kind !== 'idle') continue;
 
+    // Always update facing direction, even if movement is blocked
+    actor.facing = intent.direction;
+
     const dest = getNeighbor(actor.cell, intent.direction);
 
-    // Check destination validity
+    // Check destination validity — if blocked, actor turns but doesn't move
     if (!isInBounds(snapshot, dest)) continue;
     const destCell = getCell(snapshot, dest);
     if (!destCell) continue;
@@ -51,7 +54,6 @@ export function applyMoveIntents(
     const totalTicks = config.actorMoveTicks;
     const leavingTicks = Math.floor(totalTicks / 2);
 
-    actor.facing = intent.direction;
     actor.state = {
       kind: 'surfaceTravel',
       mode: 'walk',

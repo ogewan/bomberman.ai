@@ -1,11 +1,10 @@
 /**
- * AppLayout — stable desktop-first application layout.
- * Top bar, left sidebar, center (render area), right sidebar, bottom bar.
- * Renderer is the priority area (>=50% width when sidebars open).
+ * AppLayout — stable desktop-first application layout with resizable sidebars.
  */
 
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { useLayoutStore } from '@bomberman65/app-state';
+import { ResizeHandle } from './ResizeHandle.js';
 
 export type AppLayoutProps = {
   topBar: React.ReactNode;
@@ -14,6 +13,9 @@ export type AppLayoutProps = {
   bottomBar: React.ReactNode;
   center: React.ReactNode;
 };
+
+const MIN_SIDEBAR = 180;
+const MAX_SIDEBAR = 500;
 
 export function AppLayout({
   topBar,
@@ -24,14 +26,34 @@ export function AppLayout({
 }: AppLayoutProps) {
   const leftOpen = useLayoutStore((s) => s.leftSidebarOpen);
   const rightOpen = useLayoutStore((s) => s.rightSidebarOpen);
+  const [leftWidth, setLeftWidth] = useState(240);
+  const [rightWidth, setRightWidth] = useState(260);
+
+  const handleLeftResize = useCallback((delta: number) => {
+    setLeftWidth((w) => Math.max(MIN_SIDEBAR, Math.min(MAX_SIDEBAR, w + delta)));
+  }, []);
+
+  const handleRightResize = useCallback((delta: number) => {
+    setRightWidth((w) => Math.max(MIN_SIDEBAR, Math.min(MAX_SIDEBAR, w + delta)));
+  }, []);
 
   return (
     <div style={styles.root}>
       <div style={styles.topBar}>{topBar}</div>
       <div style={styles.middle}>
-        {leftOpen && <div style={styles.leftSidebar}>{leftSidebar}</div>}
+        {leftOpen && (
+          <>
+            <div style={{ ...styles.sidebar, width: leftWidth }}>{leftSidebar}</div>
+            <ResizeHandle side="left" onResize={handleLeftResize} />
+          </>
+        )}
         <div style={styles.center}>{center}</div>
-        {rightOpen && <div style={styles.rightSidebar}>{rightSidebar}</div>}
+        {rightOpen && (
+          <>
+            <ResizeHandle side="right" onResize={handleRightResize} />
+            <div style={{ ...styles.sidebar, width: rightWidth }}>{rightSidebar}</div>
+          </>
+        )}
       </div>
       <div style={styles.bottomBar}>{bottomBar}</div>
     </div>
@@ -64,9 +86,9 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
     overflow: 'hidden',
   },
-  leftSidebar: {
-    width: '240px',
+  sidebar: {
     borderRight: '1px solid #333',
+    borderLeft: '1px solid #333',
     overflow: 'auto',
     flexShrink: 0,
   },
@@ -74,12 +96,6 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
     minWidth: 0,
     position: 'relative',
-  },
-  rightSidebar: {
-    width: '260px',
-    borderLeft: '1px solid #333',
-    overflow: 'auto',
-    flexShrink: 0,
   },
   bottomBar: {
     height: '28px',

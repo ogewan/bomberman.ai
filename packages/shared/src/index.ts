@@ -85,3 +85,6 @@ export {
   MAX_HEIGHT_LEVELS,
   BOUNCE_CHAIN_EXTRA,
 } from './constants/defaults.js';
+
+// Keybinds
+export { type KeybindConfig, DEFAULT_KEYBINDS } from './types/keybinds.js';

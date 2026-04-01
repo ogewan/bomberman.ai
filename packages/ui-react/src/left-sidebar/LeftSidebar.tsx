@@ -5,25 +5,19 @@
  */
 
 import { useSessionStore } from '@bomberman65/app-state';
-import type { MatchConfig } from '@bomberman65/shared';
+import type { MatchConfig, KeybindConfig } from '@bomberman65/shared';
 import { Accordion } from '../layout/Accordion.js';
 import { MatchConfigEditor } from '../controls/MatchConfigEditor.js';
+import { KeybindEditor } from '../controls/KeybindEditor.js';
 import type { MapSelectorProps } from '../app-shell/AppShell.js';
-
-function KeybindRow({ keys, action }: { keys: string; action: string }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-      <span style={{ color: '#aaa', fontFamily: 'monospace' }}>{keys}</span>
-      <span>{action}</span>
-    </div>
-  );
-}
 
 export type LeftSidebarProps = {
   runInfo?: { runId: string; mapId: string; seed: number; tick: number };
   mapSelector?: MapSelectorProps;
   configOverrides?: Partial<MatchConfig>;
   onConfigChange?: (overrides: Partial<MatchConfig>) => void;
+  keybinds?: KeybindConfig;
+  onKeybindsChange?: (keybinds: KeybindConfig) => void;
 };
 
 export function LeftSidebar({
@@ -31,6 +25,8 @@ export function LeftSidebar({
   mapSelector,
   configOverrides,
   onConfigChange,
+  keybinds,
+  onKeybindsChange,
 }: LeftSidebarProps) {
   const gameState = useSessionStore((s) => s.gameState);
 
@@ -78,6 +74,15 @@ export function LeftSidebar({
         )}
       </Accordion>
 
+      {/* Keybinds — under config, always enabled */}
+      <Accordion title="Keybinds" enabled={true} defaultOpen={false}>
+        {keybinds && onKeybindsChange ? (
+          <KeybindEditor keybinds={keybinds} onChange={onKeybindsChange} />
+        ) : (
+          <div style={{ fontSize: 11, color: '#888' }}>No keybind config</div>
+        )}
+      </Accordion>
+
       {/* Agents */}
       <Accordion title="Agents" enabled={isSetup} defaultOpen={false}>
         <div style={{ fontSize: 11, color: '#888' }}>Agent assignment (future).</div>
@@ -110,20 +115,6 @@ export function LeftSidebar({
       {/* Batch */}
       <Accordion title="Batch" enabled={gameState === 'batch'} defaultOpen={false}>
         <div style={{ fontSize: 11, color: '#888' }}>Batch job management (future).</div>
-      </Accordion>
-
-      {/* Keybinds — always enabled, reference only */}
-      <Accordion title="Keybinds" enabled={true} defaultOpen={false}>
-        <div style={{ fontSize: 11 }}>
-          <KeybindRow keys="W / ↑" action="Move Up" />
-          <KeybindRow keys="S / ↓" action="Move Down" />
-          <KeybindRow keys="A / ←" action="Move Left" />
-          <KeybindRow keys="D / →" action="Move Right" />
-          <KeybindRow keys="Space" action="Place Bomb" />
-          <KeybindRow keys="E" action="Pickup / Pump" />
-          <KeybindRow keys="Q" action="Throw" />
-          <KeybindRow keys="F" action="Kick" />
-        </div>
       </Accordion>
     </div>
   );
