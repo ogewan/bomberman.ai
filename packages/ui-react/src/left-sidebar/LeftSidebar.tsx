@@ -1,11 +1,12 @@
 /**
  * LeftSidebar — navigation, tools, browsers.
- * Uses tabs when content is dense. Tab content adapts to game state.
+ * All sections shown as accordions. Sections are greyed out when not
+ * applicable to the current game state.
  */
 
-import { useState } from 'react';
 import { useSessionStore } from '@bomberman65/app-state';
 import type { MatchConfig } from '@bomberman65/shared';
+import { Accordion } from '../layout/Accordion.js';
 import { MatchConfigEditor } from '../controls/MatchConfigEditor.js';
 import type { MapSelectorProps } from '../app-shell/AppShell.js';
 
@@ -23,95 +24,84 @@ export function LeftSidebar({
   onConfigChange,
 }: LeftSidebarProps) {
   const gameState = useSessionStore((s) => s.gameState);
-  const tabs = getTabsForState(gameState);
-  const [activeTab, setActiveTab] = useState(tabs[0] ?? 'run');
+
+  const isSetup = gameState === 'setup' || gameState === 'editor';
+  const isRunning = gameState === 'playing' || gameState === 'paused';
 
   return (
-    <div style={{ padding: 8 }}>
-      <div style={{ display: 'flex', gap: 2, marginBottom: 8, flexWrap: 'wrap' }}>
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            style={{
-              padding: '2px 8px',
-              fontSize: 11,
-              background: activeTab === tab ? '#444' : '#2a2a2a',
-              color: '#e0e0e0',
-              border: '1px solid #555',
-              borderRadius: '3px 3px 0 0',
-              cursor: 'pointer',
-            }}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+    <div style={{ padding: 4 }}>
+      {/* Content / Map Browser */}
+      <Accordion title="Content" enabled={isSetup} defaultOpen={isSetup}>
+        {mapSelector ? (
+          <div style={{ fontSize: 11 }}>
+            <div style={{ fontWeight: 'bold', marginBottom: 4 }}>Select Map</div>
+            <select
+              value={mapSelector.selectedMapId}
+              onChange={(e) => mapSelector.onSelectMap(e.target.value)}
+              style={{
+                width: '100%',
+                background: '#2a2a2a',
+                color: '#e0e0e0',
+                border: '1px solid #555',
+                borderRadius: 3,
+                fontSize: 12,
+                padding: '4px',
+              }}
+            >
+              {mapSelector.maps.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <div style={{ fontSize: 11, color: '#888' }}>No maps loaded</div>
+        )}
+      </Accordion>
 
-      {activeTab === 'content' && mapSelector && (
-        <div style={{ fontSize: 11 }}>
-          <div style={{ fontWeight: 'bold', marginBottom: 4 }}>Select Map</div>
-          <select
-            value={mapSelector.selectedMapId}
-            onChange={(e) => mapSelector.onSelectMap(e.target.value)}
-            style={{
-              width: '100%',
-              background: '#2a2a2a',
-              color: '#e0e0e0',
-              border: '1px solid #555',
-              borderRadius: 3,
-              fontSize: 12,
-              padding: '4px',
-              marginBottom: 8,
-            }}
-          >
-            {mapSelector.maps.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      {/* Config */}
+      <Accordion title="Config" enabled={isSetup} defaultOpen={false}>
+        {configOverrides !== undefined && onConfigChange ? (
+          <MatchConfigEditor overrides={configOverrides} onChange={onConfigChange} />
+        ) : (
+          <div style={{ fontSize: 11, color: '#888' }}>No config available</div>
+        )}
+      </Accordion>
 
-      {activeTab === 'config' && configOverrides !== undefined && onConfigChange && (
-        <MatchConfigEditor overrides={configOverrides} onChange={onConfigChange} />
-      )}
-
-      {activeTab === 'run' && runInfo && (
-        <div style={{ fontSize: 11 }}>
-          <div>Run: {runInfo.runId}</div>
-          <div>Map: {runInfo.mapId}</div>
-          <div>Seed: {runInfo.seed}</div>
-          <div>Tick: {runInfo.tick}</div>
-        </div>
-      )}
-
-      {activeTab === 'overlays' && (
-        <div style={{ fontSize: 11, color: '#888' }}>Overlay controls available in top bar.</div>
-      )}
-
-      {activeTab === 'agents' && (
+      {/* Agents */}
+      <Accordion title="Agents" enabled={isSetup} defaultOpen={false}>
         <div style={{ fontSize: 11, color: '#888' }}>Agent assignment (future).</div>
-      )}
+      </Accordion>
+
+      {/* Run Info */}
+      <Accordion title="Run" enabled={isRunning} defaultOpen={isRunning}>
+        {runInfo ? (
+          <div style={{ fontSize: 11 }}>
+            <div>Run: {runInfo.runId}</div>
+            <div>Map: {runInfo.mapId}</div>
+            <div>Seed: {runInfo.seed}</div>
+            <div>Tick: {runInfo.tick}</div>
+          </div>
+        ) : (
+          <div style={{ fontSize: 11, color: '#888' }}>No active run</div>
+        )}
+      </Accordion>
+
+      {/* Overlays */}
+      <Accordion title="Overlays" enabled={isRunning} defaultOpen={false}>
+        <div style={{ fontSize: 11, color: '#888' }}>Overlay controls in top bar.</div>
+      </Accordion>
+
+      {/* Replay */}
+      <Accordion title="Replay" enabled={gameState === 'replay'} defaultOpen={false}>
+        <div style={{ fontSize: 11, color: '#888' }}>Replay controls (future).</div>
+      </Accordion>
+
+      {/* Batch */}
+      <Accordion title="Batch" enabled={gameState === 'batch'} defaultOpen={false}>
+        <div style={{ fontSize: 11, color: '#888' }}>Batch job management (future).</div>
+      </Accordion>
     </div>
   );
-}
-
-function getTabsForState(state: string): string[] {
-  switch (state) {
-    case 'setup':
-      return ['content', 'config', 'agents'];
-    case 'playing':
-    case 'paused':
-      return ['run', 'overlays', 'tools'];
-    case 'replay':
-      return ['replay', 'events', 'runs'];
-    case 'batch':
-      return ['queue', 'running', 'done'];
-    case 'results':
-      return ['history', 'compare', 'exports'];
-    default:
-      return ['run'];
-  }
 }

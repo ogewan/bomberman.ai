@@ -1,11 +1,12 @@
 /**
  * RightSidebar — inspector, selected entity details, validation, summaries.
- * Tab content adapts to game state and current selection.
+ * All sections shown as accordions. Sections are greyed out when not
+ * applicable to the current game state.
  */
 
-import { useState } from 'react';
 import { useSessionStore, useSelectionStore } from '@bomberman65/app-state';
 import type { ActorState, BombState, WorldSnapshot } from '@bomberman65/shared';
+import { Accordion } from '../layout/Accordion.js';
 
 export type RightSidebarProps = {
   snapshot?: WorldSnapshot;
@@ -14,38 +15,51 @@ export type RightSidebarProps = {
 export function RightSidebar({ snapshot }: RightSidebarProps) {
   const gameState = useSessionStore((s) => s.gameState);
   const selection = useSelectionStore((s) => s.selection);
-  const tabs = getTabsForState(gameState);
-  const [activeTab, setActiveTab] = useState(tabs[0] ?? 'inspector');
+
+  const isRunning = gameState === 'playing' || gameState === 'paused';
+  const hasSnapshot = !!snapshot;
 
   return (
-    <div style={{ padding: 8 }}>
-      <div style={{ display: 'flex', gap: 2, marginBottom: 8 }}>
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            style={{
-              padding: '2px 8px',
-              fontSize: 11,
-              background: activeTab === tab ? '#444' : '#2a2a2a',
-              color: '#e0e0e0',
-              border: '1px solid #555',
-              borderRadius: '3px 3px 0 0',
-              cursor: 'pointer',
-            }}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+    <div style={{ padding: 4 }}>
+      {/* Inspector */}
+      <Accordion title="Inspector" enabled={hasSnapshot} defaultOpen={true}>
+        <InspectorPanel selection={selection} snapshot={snapshot} />
+      </Accordion>
 
-      {activeTab === 'inspector' && <InspectorPanel selection={selection} snapshot={snapshot} />}
+      {/* Actors */}
+      <Accordion title="Actors" enabled={hasSnapshot} defaultOpen={isRunning}>
+        {snapshot ? <ActorListPanel snapshot={snapshot} /> : <Empty />}
+      </Accordion>
 
-      {activeTab === 'actors' && snapshot && <ActorListPanel snapshot={snapshot} />}
+      {/* Bombs */}
+      <Accordion title="Bombs" enabled={hasSnapshot} defaultOpen={false}>
+        {snapshot ? <BombListPanel snapshot={snapshot} /> : <Empty />}
+      </Accordion>
 
-      {activeTab === 'bombs' && snapshot && <BombListPanel snapshot={snapshot} />}
+      {/* Summary / Setup */}
+      <Accordion title="Summary" enabled={gameState === 'setup'} defaultOpen={false}>
+        <div style={{ fontSize: 11, color: '#888' }}>Map and scenario summary.</div>
+      </Accordion>
+
+      {/* Validation */}
+      <Accordion title="Validation" enabled={gameState === 'setup'} defaultOpen={false}>
+        <div style={{ fontSize: 11, color: '#888' }}>Validation output (future).</div>
+      </Accordion>
+
+      {/* Result */}
+      <Accordion
+        title="Result"
+        enabled={gameState === 'results'}
+        defaultOpen={gameState === 'results'}
+      >
+        <div style={{ fontSize: 11, color: '#888' }}>Match result summary.</div>
+      </Accordion>
     </div>
   );
+}
+
+function Empty() {
+  return <div style={{ fontSize: 11, color: '#888' }}>No data</div>;
 }
 
 function InspectorPanel({
@@ -56,7 +70,7 @@ function InspectorPanel({
   snapshot?: WorldSnapshot;
 }) {
   if (selection.kind === 'none') {
-    return <div style={{ fontSize: 11, color: '#888' }}>No selection</div>;
+    return <div style={{ fontSize: 11, color: '#888' }}>Click an entity to inspect</div>;
   }
 
   if (selection.kind === 'actor' && snapshot && 'id' in selection) {
@@ -110,7 +124,11 @@ function ActorListPanel({ snapshot }: { snapshot: WorldSnapshot }) {
         <div
           key={actor.id}
           onClick={() => select({ kind: 'actor', id: actor.id })}
-          style={{ padding: '2px 0', cursor: 'pointer', borderBottom: '1px solid #333' }}
+          style={{
+            padding: '2px 0',
+            cursor: 'pointer',
+            borderBottom: '1px solid #333',
+          }}
         >
           {actor.id} — {actor.state.kind} ({actor.cell.x},{actor.cell.y},{actor.cell.z})
         </div>
@@ -130,7 +148,11 @@ function BombListPanel({ snapshot }: { snapshot: WorldSnapshot }) {
         <div
           key={bomb.id}
           onClick={() => select({ kind: 'bomb', id: bomb.id })}
-          style={{ padding: '2px 0', cursor: 'pointer', borderBottom: '1px solid #333' }}
+          style={{
+            padding: '2px 0',
+            cursor: 'pointer',
+            borderBottom: '1px solid #333',
+          }}
         >
           {bomb.id} — {bomb.bombType} fuse:{bomb.fuseTicksRemaining} ({bomb.cell.x},{bomb.cell.y},
           {bomb.cell.z})
@@ -138,20 +160,4 @@ function BombListPanel({ snapshot }: { snapshot: WorldSnapshot }) {
       ))}
     </div>
   );
-}
-
-function getTabsForState(state: string): string[] {
-  switch (state) {
-    case 'setup':
-      return ['summary', 'validation', 'details'];
-    case 'playing':
-    case 'paused':
-      return ['inspector', 'actors', 'bombs', 'cell'];
-    case 'replay':
-      return ['inspector', 'result', 'validation'];
-    case 'results':
-      return ['summary', 'stats', 'notes'];
-    default:
-      return ['inspector'];
-  }
 }

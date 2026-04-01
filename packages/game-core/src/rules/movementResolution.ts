@@ -87,10 +87,28 @@ function resolveActorSurfaceTravel(snapshot: WorldSnapshot): void {
         continue;
       }
 
+      // Capture from/to before state changes
+      const fromCell = actor.state.from;
+      const toCell = actor.state.to;
+
       // Transfer occupancy: leave source, enter destination
-      clearOccupant(snapshot, actor.state.from);
-      setOccupant(snapshot, actor.state.to, { kind: 'actor', id: actor.id });
-      actor.cell = { ...actor.state.to };
+      clearOccupant(snapshot, fromCell);
+
+      // If a bomb exists at the source cell, it becomes the occupant now that the actor left
+      const bombAtSource = Object.values(snapshot.bombs).find(
+        (b) =>
+          (b as BombState).cell.x === fromCell.x &&
+          (b as BombState).cell.y === fromCell.y &&
+          (b as BombState).cell.z === fromCell.z &&
+          (b as BombState).state.kind !== 'removed' &&
+          (b as BombState).state.kind !== 'exploding',
+      ) as BombState | undefined;
+      if (bombAtSource) {
+        setOccupant(snapshot, fromCell, { kind: 'bomb', id: bombAtSource.id });
+      }
+
+      setOccupant(snapshot, toCell, { kind: 'actor', id: actor.id });
+      actor.cell = { ...toCell };
 
       // Collect item if present
       if (destCell.item) {

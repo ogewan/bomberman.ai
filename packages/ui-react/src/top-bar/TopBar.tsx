@@ -77,7 +77,7 @@ function renderControls(state: GameState, handlers: TopBarProps) {
       return (
         <>
           <Btn onClick={handlers.onPause}>Pause</Btn>
-          <Btn onClick={handlers.onStop}>Stop</Btn>
+          <Btn onClick={handlers.onStop}>Back to Setup</Btn>
         </>
       );
     case 'paused':
@@ -85,13 +85,14 @@ function renderControls(state: GameState, handlers: TopBarProps) {
         <>
           <Btn onClick={handlers.onResume}>Resume</Btn>
           <Btn onClick={handlers.onStepTick}>Step</Btn>
-          <Btn onClick={handlers.onStop}>Stop</Btn>
+          <Btn onClick={handlers.onStop}>Back to Setup</Btn>
         </>
       );
     case 'results':
       return (
         <>
           <Btn onClick={handlers.onRestart}>Restart</Btn>
+          <Btn onClick={handlers.onStop}>Back to Setup</Btn>
         </>
       );
     default:

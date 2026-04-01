@@ -18,7 +18,7 @@ import {
 import type { RenderModel } from '@bomberman65/game-core';
 import { SceneRoot } from '@bomberman65/render-r3f';
 import { AppShell, MapEditor } from '@bomberman65/ui-react';
-import { useSessionStore, useLayoutStore } from '@bomberman65/app-state';
+import { useSessionStore, useLayoutStore, useSelectionStore } from '@bomberman65/app-state';
 import {
   loadManifest,
   loadMap,
@@ -46,6 +46,10 @@ function App() {
   const playbackSpeed = useSessionStore((s) => s.playbackSpeed);
   const showDebugGrid = useLayoutStore((s) => s.showDebugGrid);
   const showDebugCoords = useLayoutStore((s) => s.showDebugCoordinates);
+  const select = useSelectionStore((s) => s.select);
+
+  const handleSelectActor = useCallback((id: string) => select({ kind: 'actor', id }), [select]);
+  const handleSelectBomb = useCallback((id: string) => select({ kind: 'bomb', id }), [select]);
 
   // Load manifest on mount
   useEffect(() => {
@@ -115,7 +119,10 @@ function App() {
   }, [runner, setGameState]);
   const handleStop = useCallback(() => {
     runner?.stop();
-    setGameState('results');
+    setGameState('setup');
+    setRunner(null);
+    setSnapshot(null);
+    setRenderModel(null);
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (keyboardRef.current) {
       keyboardRef.current.detach();
@@ -240,6 +247,8 @@ function App() {
             renderModel={renderModel}
             showDebugGrid={showDebugGrid}
             showDebugCoordinates={showDebugCoords}
+            onSelectActor={handleSelectActor}
+            onSelectBomb={handleSelectBomb}
           />
         ) : (
           <div

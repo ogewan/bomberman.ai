@@ -16,12 +16,16 @@ export type SceneRootProps = {
   renderModel: RenderModel;
   showDebugGrid?: boolean;
   showDebugCoordinates?: boolean;
+  onSelectActor?: (id: string) => void;
+  onSelectBomb?: (id: string) => void;
 };
 
 export function SceneRoot({
   renderModel,
   showDebugGrid = false,
   showDebugCoordinates = false,
+  onSelectActor,
+  onSelectBomb,
 }: SceneRootProps) {
   return (
     <Canvas style={{ width: '100%', height: '100%' }}>
@@ -31,11 +35,9 @@ export function SceneRoot({
         gridDepth={renderModel.gridSize.z}
       />
 
-      {/* Lighting */}
       <ambientLight intensity={0.6} />
       <directionalLight position={[10, -10, 15]} intensity={0.8} />
 
-      {/* Ground plane */}
       <mesh
         rotation={[0, 0, 0]}
         position={[renderModel.gridSize.x / 2 - 0.5, renderModel.gridSize.y / 2 - 0.5, -0.5]}
@@ -44,13 +46,15 @@ export function SceneRoot({
         <meshStandardMaterial color="#2a2a2a" />
       </mesh>
 
-      {/* Visual layers */}
       <TerrainLayer terrain={renderModel.terrain} />
-      <ActorLayer actors={renderModel.actors} />
-      <BombLayer bombs={renderModel.bombs} explosionCells={renderModel.explosionCells} />
+      <ActorLayer actors={renderModel.actors} onSelectActor={onSelectActor} />
+      <BombLayer
+        bombs={renderModel.bombs}
+        explosionCells={renderModel.explosionCells}
+        onSelectBomb={onSelectBomb}
+      />
       <ItemLayer items={renderModel.items} />
 
-      {/* Debug overlays */}
       <DebugOverlay
         gridSize={renderModel.gridSize}
         showGrid={showDebugGrid}

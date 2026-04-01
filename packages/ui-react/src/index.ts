@@ -2,6 +2,7 @@
 
 export { AppShell, type AppShellProps } from './app-shell/AppShell.js';
 export { AppLayout, type AppLayoutProps } from './layout/AppLayout.js';
+export { Accordion, type AccordionProps } from './layout/Accordion.js';
 export { TopBar, type TopBarProps } from './top-bar/TopBar.js';
 export { LeftSidebar, type LeftSidebarProps } from './left-sidebar/LeftSidebar.js';
 export { RightSidebar, type RightSidebarProps } from './right-sidebar/RightSidebar.js';
