@@ -18,6 +18,7 @@ export type TopBarProps = {
   onImportMap?: () => void;
   onEditMap?: () => void;
   onNewMap?: () => void;
+  onStepBack?: () => void;
 };
 
 export function TopBar(props: TopBarProps) {
@@ -82,6 +83,7 @@ function renderControls(state: GameState, handlers: TopBarProps) {
       return (
         <>
           <Btn onClick={handlers.onResume}>Resume</Btn>
+          <Btn onClick={handlers.onStepBack}>Step Back</Btn>
           <Btn onClick={handlers.onStepTick}>Step</Btn>
           <Btn onClick={handlers.onStop}>Back to Setup</Btn>
         </>

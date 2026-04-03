@@ -25,6 +25,7 @@ const MOVEMENT_FIELDS: FieldDef[] = [
   { key: 'boostedActorMoveTicks', label: 'Boosted Move Ticks', type: 'number' },
   { key: 'thrownTravelTicks', label: 'Thrown Travel Ticks', type: 'number' },
   { key: 'kickedBombTravelTicks', label: 'Kicked Bomb Ticks', type: 'number' },
+  { key: 'throwDistance', label: 'Throw Distance', type: 'number' },
 ];
 
 const BOMB_FIELDS: FieldDef[] = [
@@ -44,7 +45,10 @@ const ACTOR_FIELDS: FieldDef[] = [
   { key: 'defaultActorUpgrade', label: 'Default Upgrade', type: 'upgrade' },
 ];
 
-const GAME_FIELDS: FieldDef[] = [{ key: 'maxTicks', label: 'Max Ticks (0=none)', type: 'number' }];
+const GAME_FIELDS: FieldDef[] = [
+  { key: 'maxTicks', label: 'Max Ticks (0=none)', type: 'number' },
+  { key: 'stepSize', label: 'Step Size (ticks)', type: 'number' },
+];
 
 export function MatchConfigEditor({ overrides, onChange }: MatchConfigEditorProps) {
   const setField = (key: keyof MatchConfig, value: number | string | undefined) => {

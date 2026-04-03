@@ -39,8 +39,8 @@ export function executeTick(
   advanceTimers(snapshot);
 
   // Step 4: Resolve completed phase boundaries
-  resolveSurfaceTravelPhases(snapshot);
-  resolveThrownTravel(snapshot);
+  resolveSurfaceTravelPhases(snapshot, config);
+  resolveThrownTravel(snapshot, config);
 
   // Step 4b: Falling and out-of-bounds
   resolveFallingAndBounds(snapshot);

@@ -67,12 +67,12 @@ export function applyMoveIntents(
 }
 
 /** Resolve completed phase boundaries for actors and bombs in surface travel. */
-export function resolveSurfaceTravelPhases(snapshot: WorldSnapshot): void {
-  resolveActorSurfaceTravel(snapshot);
-  resolveBombSurfaceTravel(snapshot);
+export function resolveSurfaceTravelPhases(snapshot: WorldSnapshot, config: MatchConfig): void {
+  resolveActorSurfaceTravel(snapshot, config);
+  resolveBombSurfaceTravel(snapshot, config);
 }
 
-function resolveActorSurfaceTravel(snapshot: WorldSnapshot): void {
+function resolveActorSurfaceTravel(snapshot: WorldSnapshot, config: MatchConfig): void {
   for (const actor of Object.values(snapshot.actors) as ActorState[]) {
     if (actor.state.kind !== 'surfaceTravel') continue;
 
@@ -103,7 +103,9 @@ function resolveActorSurfaceTravel(snapshot: WorldSnapshot): void {
           (b as BombState).cell.y === fromCell.y &&
           (b as BombState).cell.z === fromCell.z &&
           (b as BombState).state.kind !== 'removed' &&
-          (b as BombState).state.kind !== 'exploding',
+          (b as BombState).state.kind !== 'exploding' &&
+          (b as BombState).state.kind !== 'held' &&
+          (b as BombState).state.kind !== 'thrownTravel',
       ) as BombState | undefined;
       if (bombAtSource) {
         setOccupant(snapshot, fromCell, { kind: 'bomb', id: bombAtSource.id });
@@ -111,10 +113,11 @@ function resolveActorSurfaceTravel(snapshot: WorldSnapshot): void {
 
       setOccupant(snapshot, toCell, { kind: 'actor', id: actor.id });
       actor.cell = { ...toCell };
+      actor.lastMoveDirection = actor.facing;
 
       // Collect item if present
       if (destCell.item) {
-        collectItem(actor, destCell);
+        collectItem(actor, destCell, config);
       }
 
       // Start entering phase
@@ -133,7 +136,7 @@ function resolveActorSurfaceTravel(snapshot: WorldSnapshot): void {
   }
 }
 
-function resolveBombSurfaceTravel(snapshot: WorldSnapshot): void {
+function resolveBombSurfaceTravel(snapshot: WorldSnapshot, config: MatchConfig): void {
   for (const bomb of Object.values(snapshot.bombs) as BombState[]) {
     if (bomb.state.kind !== 'surfaceTravel') continue;
 
@@ -151,7 +154,13 @@ function resolveBombSurfaceTravel(snapshot: WorldSnapshot): void {
       }
 
       if (destCell.occupant) {
-        // Occupant collision — handled in Phase 5 (stun actor, momentum transfer)
+        // Kicked bomb hitting an actor applies stun
+        if (destCell.occupant.kind === 'actor') {
+          const hitActor = snapshot.actors[destCell.occupant.id] as ActorState | undefined;
+          if (hitActor && hitActor.state.kind !== 'eliminated' && hitActor.shieldTicksRemaining <= 0) {
+            hitActor.stunTicksRemaining = config.stunTicks;
+          }
+        }
         bomb.state = { kind: 'idle' };
         continue;
       }
@@ -160,6 +169,7 @@ function resolveBombSurfaceTravel(snapshot: WorldSnapshot): void {
       clearOccupant(snapshot, bomb.state.from);
       setOccupant(snapshot, bomb.state.to, { kind: 'bomb', id: bomb.id });
       bomb.cell = { ...bomb.state.to };
+      bomb.lastMoveDirection = bomb.state.direction;
 
       // Continue sliding in same direction
       const nextDest = getNeighbor(bomb.state.to, bomb.state.direction);
@@ -195,7 +205,7 @@ function resolveBombSurfaceTravel(snapshot: WorldSnapshot): void {
 
 import type { Cell } from '@bomberman65/shared';
 
-function collectItem(actor: ActorState, cell: Cell): void {
+function collectItem(actor: ActorState, cell: Cell, config: MatchConfig): void {
   if (!cell.item) return;
 
   switch (cell.item) {
@@ -213,6 +223,7 @@ function collectItem(actor: ActorState, cell: Cell): void {
       break;
     case 'upgrade-shield':
       actor.upgrade = 'shield';
+      actor.shieldTicksRemaining = config.shieldTicks;
       break;
   }
 

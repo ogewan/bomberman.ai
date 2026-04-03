@@ -113,8 +113,18 @@ export function buildRenderModel(snapshot: WorldSnapshot): RenderModel {
       isHeld,
       holderId,
       motionProgress,
-      motionFrom: actor.state.kind === 'surfaceTravel' ? actor.state.from : undefined,
-      motionTo: actor.state.kind === 'surfaceTravel' ? actor.state.to : undefined,
+      motionFrom:
+        actor.state.kind === 'surfaceTravel'
+          ? actor.state.from
+          : actor.state.kind === 'thrownTravel'
+            ? actor.state.from
+            : undefined,
+      motionTo:
+        actor.state.kind === 'surfaceTravel'
+          ? actor.state.to
+          : actor.state.kind === 'thrownTravel'
+            ? { ...actor.state.to, z: actor.state.from.z + 1 }
+            : undefined,
     };
     actors.push(visual);
     colorIdx++;
@@ -176,16 +186,18 @@ export function buildRenderModel(snapshot: WorldSnapshot): RenderModel {
 }
 
 function computeActorMotionProgress(actor: ActorState): number {
-  if (actor.state.kind !== 'surfaceTravel') return 0;
-  if (actor.state.phaseTicksTotal === 0) return actor.state.phase === 'leaving' ? 0.5 : 1;
+  if (actor.state.kind === 'surfaceTravel' || actor.state.kind === 'thrownTravel') {
+    if (actor.state.phaseTicksTotal === 0) return actor.state.phase === 'leaving' ? 0.5 : 1;
 
-  const phaseProgress = actor.state.phaseTicksElapsed / actor.state.phaseTicksTotal;
+    const phaseProgress = actor.state.phaseTicksElapsed / actor.state.phaseTicksTotal;
 
-  if (actor.state.phase === 'leaving') {
-    return phaseProgress * 0.5;
-  } else {
-    return 0.5 + phaseProgress * 0.5;
+    if (actor.state.phase === 'leaving') {
+      return phaseProgress * 0.5;
+    } else {
+      return 0.5 + phaseProgress * 0.5;
+    }
   }
+  return 0;
 }
 
 function computeFuseProgress(bomb: BombState): number {
@@ -216,7 +228,7 @@ function computeBombMotion(bomb: BombState): {
     return {
       progress: phase === 'leaving' ? p * 0.5 : 0.5 + p * 0.5,
       from: bomb.state.from,
-      to: bomb.state.to,
+      to: { ...bomb.state.to, z: bomb.state.from.z + 1 },
     };
   }
   return { progress: 0 };

@@ -9,11 +9,14 @@
  * - Bombs fully resolving out of bounds are removed
  */
 
-import type { ActorState, BombState, WorldSnapshot } from '@bomberman65/shared';
+import type { ActorState, BombState, WorldSnapshot, Direction2D } from '@bomberman65/shared';
+import { BOUNCE_CHAIN_EXTRA } from '@bomberman65/shared';
 import {
   getCell,
+  getNeighbor,
   hasSupportBelow,
   isInBounds,
+  isBlockingTerrain,
   clearOccupant,
   setOccupant,
 } from '../world/gridHelpers.js';
@@ -41,27 +44,17 @@ function resolveActorFalling(snapshot: WorldSnapshot): void {
     if (!hasSupportBelow(snapshot, actor.cell)) {
       clearOccupant(snapshot, actor.cell);
 
-      // Fall until supported or out of bounds
-      let z = actor.cell.z - 1;
-      while (z >= 0) {
-        const landingPos = { x: actor.cell.x, y: actor.cell.y, z };
-        const landingCell = getCell(snapshot, landingPos);
+      const landed = fallEntity(
+        snapshot,
+        actor.cell,
+        actor.lastMoveDirection ?? actor.facing,
+        (pos) => {
+          actor.cell = pos;
+          setOccupant(snapshot, pos, { kind: 'actor', id: actor.id });
+        },
+      );
 
-        if (landingCell && landingCell.terrain !== 'empty') {
-          // Check one above the support
-          const abovePos = { x: actor.cell.x, y: actor.cell.y, z: z + 1 };
-          const aboveCell = getCell(snapshot, abovePos);
-          if (aboveCell && !aboveCell.occupant) {
-            actor.cell = abovePos;
-            setOccupant(snapshot, abovePos, { kind: 'actor', id: actor.id });
-            break;
-          }
-        }
-        z--;
-      }
-
-      if (z < 0) {
-        // Fell out of bounds
+      if (!landed) {
         actor.state = { kind: 'eliminated' };
       }
     }
@@ -75,6 +68,7 @@ function resolveBombFalling(snapshot: WorldSnapshot): void {
     if (bomb.state.kind === 'surfaceTravel') continue;
 
     if (!isInBounds(snapshot, bomb.cell)) {
+      clearOccupant(snapshot, bomb.cell);
       bomb.state = { kind: 'removed' };
       continue;
     }
@@ -82,28 +76,97 @@ function resolveBombFalling(snapshot: WorldSnapshot): void {
     if (!hasSupportBelow(snapshot, bomb.cell)) {
       clearOccupant(snapshot, bomb.cell);
 
-      let z = bomb.cell.z - 1;
-      while (z >= 0) {
-        const landingPos = { x: bomb.cell.x, y: bomb.cell.y, z };
-        const landingCell = getCell(snapshot, landingPos);
+      const landed = fallEntity(
+        snapshot,
+        bomb.cell,
+        bomb.lastMoveDirection ?? 'south',
+        (pos) => {
+          bomb.cell = pos;
+          setOccupant(snapshot, pos, { kind: 'bomb', id: bomb.id });
+        },
+      );
 
-        if (landingCell && landingCell.terrain !== 'empty') {
-          const abovePos = { x: bomb.cell.x, y: bomb.cell.y, z: z + 1 };
-          const aboveCell = getCell(snapshot, abovePos);
-          if (aboveCell && !aboveCell.occupant) {
-            bomb.cell = abovePos;
-            setOccupant(snapshot, abovePos, { kind: 'bomb', id: bomb.id });
-            break;
-          }
-        }
-        z--;
-      }
-
-      if (z < 0) {
+      if (!landed) {
         bomb.state = { kind: 'removed' };
       }
     }
   }
+}
+
+/**
+ * Shared falling logic for actors and bombs.
+ * Falls straight down to find support, bouncing horizontally if landing cell is occupied.
+ * Returns true if entity landed, false if fell out of bounds.
+ */
+function fallEntity(
+  snapshot: WorldSnapshot,
+  startCell: { x: number; y: number; z: number },
+  bounceDir: Direction2D,
+  land: (pos: { x: number; y: number; z: number }) => void,
+): boolean {
+  const bounceLimit = Math.max(snapshot.size.x, snapshot.size.y) + BOUNCE_CHAIN_EXTRA;
+
+  // Try landing in a column, with horizontal bounce if occupied
+  const tryLandInColumn = (cx: number, cy: number, fromZ: number): boolean => {
+    let z = fromZ;
+    while (z >= 0) {
+      const pos = { x: cx, y: cy, z };
+      const cell = getCell(snapshot, pos);
+      if (!cell) break;
+
+      if (cell.terrain !== 'empty') {
+        // Non-empty terrain is support — land one above
+        const abovePos = { x: cx, y: cy, z: z + 1 };
+        const aboveCell = getCell(snapshot, abovePos);
+        if (aboveCell && !aboveCell.occupant && isInBounds(snapshot, abovePos)) {
+          land(abovePos);
+          return true;
+        }
+        // Landing cell occupied — return false to trigger bounce
+        return false;
+      }
+
+      if (z === 0) {
+        // z=0 is ground level — land here if unoccupied
+        if (!cell.occupant) {
+          land(pos);
+          return true;
+        }
+        // Occupied ground — return false to trigger bounce
+        return false;
+      }
+
+      z--;
+    }
+    return false;
+  };
+
+  // First try: fall straight down in the starting column
+  if (tryLandInColumn(startCell.x, startCell.y, startCell.z - 1)) {
+    return true;
+  }
+
+  // Horizontal bounce — continue in movement direction
+  let bouncePos = { ...startCell };
+  for (let b = 0; b < bounceLimit; b++) {
+    bouncePos = getNeighbor(bouncePos, bounceDir);
+    const bounceCell = getCell(snapshot, bouncePos);
+    if (!bounceCell || !isInBounds(snapshot, bouncePos) || isBlockingTerrain(bounceCell)) break;
+    if (bounceCell.occupant) continue;
+
+    // Found an empty cell at this z-level — check if it has support or can fall further
+    if (hasSupportBelow(snapshot, bouncePos) || bouncePos.z === 0) {
+      land(bouncePos);
+      return true;
+    }
+
+    // Unsupported — try falling in this column
+    if (tryLandInColumn(bouncePos.x, bouncePos.y, bouncePos.z - 1)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function resolveItemFalling(snapshot: WorldSnapshot): void {

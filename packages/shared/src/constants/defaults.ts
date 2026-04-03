@@ -8,6 +8,7 @@ export const DEFAULT_MATCH_CONFIG: Omit<MatchConfig, 'mapId' | 'seed'> = {
   boostedActorMoveTicks: 10,
   thrownTravelTicks: 20,
   kickedBombTravelTicks: 20,
+  throwDistance: 4,
 
   regularBombFuseTicks: 120,
   pumpedBombFuseTicks: 120,
@@ -18,6 +19,8 @@ export const DEFAULT_MATCH_CONFIG: Omit<MatchConfig, 'mapId' | 'seed'> = {
   defaultActorCount: 1,
   defaultActorPower: 1,
   defaultActorUpgrade: 'none',
+
+  stepSize: 1,
 
   allowBots: true,
   allowReplayRecording: true,

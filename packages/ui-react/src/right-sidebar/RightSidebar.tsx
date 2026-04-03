@@ -4,15 +4,17 @@
  * applicable to the current game state.
  */
 
+import React from 'react';
 import { useSessionStore, useSelectionStore } from '@bomberman65/app-state';
 import type { ActorState, BombState, WorldSnapshot } from '@bomberman65/shared';
 import { Accordion } from '../layout/Accordion.js';
 
 export type RightSidebarProps = {
   snapshot?: WorldSnapshot;
+  onModifyActor?: (actorId: string, field: string, value: number) => void;
 };
 
-export function RightSidebar({ snapshot }: RightSidebarProps) {
+export function RightSidebar({ snapshot, onModifyActor }: RightSidebarProps) {
   const gameState = useSessionStore((s) => s.gameState);
   const selection = useSelectionStore((s) => s.selection);
 
@@ -23,7 +25,7 @@ export function RightSidebar({ snapshot }: RightSidebarProps) {
     <div style={{ padding: 4 }}>
       {/* Inspector */}
       <Accordion title="Inspector" enabled={hasSnapshot} defaultOpen={true}>
-        <InspectorPanel selection={selection} snapshot={snapshot} />
+        <InspectorPanel selection={selection} snapshot={snapshot} onModifyActor={onModifyActor} />
       </Accordion>
 
       {/* Actors */}
@@ -65,9 +67,11 @@ function Empty() {
 function InspectorPanel({
   selection,
   snapshot,
+  onModifyActor,
 }: {
   selection: { kind: string; id?: string };
   snapshot?: WorldSnapshot;
+  onModifyActor?: (actorId: string, field: string, value: number) => void;
 }) {
   if (selection.kind === 'none') {
     return <div style={{ fontSize: 11, color: '#888' }}>Click an entity to inspect</div>;
@@ -90,6 +94,28 @@ function InspectorPanel({
         <div>Upgrade: {actor.upgrade}</div>
         {actor.stunTicksRemaining > 0 && <div>Stunned: {actor.stunTicksRemaining} ticks</div>}
         {actor.shieldTicksRemaining > 0 && <div>Shield: {actor.shieldTicksRemaining} ticks</div>}
+        {onModifyActor && (
+          <div style={{ marginTop: 6, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            {actor.stunTicksRemaining <= 0 ? (
+              <button style={debugBtnStyle} onClick={() => onModifyActor(actor.id, 'stunTicksRemaining', 60)}>
+                Apply Stun
+              </button>
+            ) : (
+              <button style={debugBtnStyle} onClick={() => onModifyActor(actor.id, 'stunTicksRemaining', 0)}>
+                Clear Stun
+              </button>
+            )}
+            {actor.shieldTicksRemaining <= 0 ? (
+              <button style={debugBtnStyle} onClick={() => onModifyActor(actor.id, 'shieldTicksRemaining', 300)}>
+                Apply Shield
+              </button>
+            ) : (
+              <button style={debugBtnStyle} onClick={() => onModifyActor(actor.id, 'shieldTicksRemaining', 0)}>
+                Clear Shield
+              </button>
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -186,3 +212,13 @@ function BombListPanel({ snapshot }: { snapshot: WorldSnapshot }) {
     </div>
   );
 }
+
+const debugBtnStyle: React.CSSProperties = {
+  padding: '2px 6px',
+  fontSize: 10,
+  background: '#333',
+  color: '#e0e0e0',
+  border: '1px solid #555',
+  borderRadius: 3,
+  cursor: 'pointer',
+};

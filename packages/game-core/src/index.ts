@@ -21,6 +21,7 @@ export { executeTick } from './run/TickPipeline.js';
 // Factories
 export {
   createSimulationRun,
+  resetSessionCounters,
   type CreateRunParams,
   type CreateRunResult,
 } from './factories/SimulationRunFactory.js';

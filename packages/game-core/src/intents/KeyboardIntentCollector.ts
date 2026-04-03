@@ -17,7 +17,11 @@ export class KeyboardIntentCollector implements IntentCollector {
   private actorId: string;
   private keybinds: KeybindConfig;
   private pressedKeys = new Set<string>();
-  private boundKeyDown = (e: { key: string }) => this.pressedKeys.add(e.key);
+  private justPressedKeys = new Set<string>();
+  private boundKeyDown = (e: { key: string }) => {
+    this.pressedKeys.add(e.key);
+    this.justPressedKeys.add(e.key);
+  };
   private boundKeyUp = (e: { key: string }) => this.pressedKeys.delete(e.key);
   private target: KeyEventTarget | null = null;
 
@@ -43,6 +47,7 @@ export class KeyboardIntentCollector implements IntentCollector {
     this.target.removeEventListener('keyup', this.boundKeyUp);
     this.target = null;
     this.pressedKeys.clear();
+    this.justPressedKeys.clear();
   }
 
   collectIntents(snapshot: WorldSnapshot): ActorIntent[] {
@@ -60,8 +65,8 @@ export class KeyboardIntentCollector implements IntentCollector {
       intents.push({ kind: 'placeBomb', actorId: this.actorId });
     }
 
-    // Pickup / pump — context-dependent: pump if already holding, pickup if not
-    if (this.anyPressed(kb.pickupPump)) {
+    // Pickup / pump — edge-triggered: only fires on fresh key press, not while held
+    if (this.anyJustPressed(kb.pickupPump)) {
       const isHolding = Object.values(snapshot.bombs).some(
         (b) =>
           (b as { state: { kind: string; holderActorId?: string } }).state.kind === 'held' &&
@@ -88,6 +93,9 @@ export class KeyboardIntentCollector implements IntentCollector {
       intents.push({ kind: 'idle', actorId: this.actorId });
     }
 
+    // Clear edge-triggered keys after consumption
+    this.justPressedKeys.clear();
+
     return intents;
   }
 
@@ -103,6 +111,13 @@ export class KeyboardIntentCollector implements IntentCollector {
   private anyPressed(keys: string[]): boolean {
     for (const key of keys) {
       if (this.pressedKeys.has(key)) return true;
+    }
+    return false;
+  }
+
+  private anyJustPressed(keys: string[]): boolean {
+    for (const key of keys) {
+      if (this.justPressedKeys.has(key)) return true;
     }
     return false;
   }

@@ -8,6 +8,7 @@ import type { WorldSnapshot, MapDefinition, MatchConfig, KeybindConfig } from '@
 import { DEFAULT_MATCH_CONFIG, DEFAULT_KEYBINDS } from '@bomberman65/shared';
 import {
   createSimulationRun,
+  resetSessionCounters,
   SimulationRunner,
   KeyboardIntentCollector,
   BotIntentCollector,
@@ -97,6 +98,7 @@ function App() {
       controller: (i === 0 ? 'player' : 'bot') as 'player' | 'bot',
     }));
 
+    resetSessionCounters();
     const { run } = createSimulationRun({ map: currentMap, config, spawnAssignments });
 
     const keyboard = new KeyboardIntentCollector(spawnAssignments[0]!.actorId, keybinds);
@@ -137,10 +139,18 @@ function App() {
 
   const handleStepTick = useCallback(() => {
     if (!runner) return;
-    runner.stepTick();
+    const stepCount = configOverrides.stepSize ?? DEFAULT_MATCH_CONFIG.stepSize ?? 1;
+    runner.stepTicks(stepCount);
     updateView(runner.getRun().snapshot);
     if (runner.getRun().status === 'finished') setGameState('results');
-  }, [runner, updateView, setGameState]);
+  }, [runner, updateView, setGameState, configOverrides]);
+
+  const handleStepBack = useCallback(() => {
+    if (!runner) return;
+    const stepCount = configOverrides.stepSize ?? DEFAULT_MATCH_CONFIG.stepSize ?? 1;
+    runner.stepBack(stepCount);
+    updateView(runner.getRun().snapshot);
+  }, [runner, updateView, configOverrides]);
 
   const handleExportMap = useCallback(() => {
     if (!currentMap) return;
@@ -182,6 +192,16 @@ function App() {
     setCurrentMap(null);
     setGameState('editor');
   }, [setGameState]);
+
+  const handleModifyActor = useCallback(
+    (actorId: string, field: string, value: number) => {
+      if (!snapshot) return;
+      const actor = snapshot.actors[actorId] as Record<string, unknown> | undefined;
+      if (!actor) return;
+      actor[field] = value;
+    },
+    [snapshot],
+  );
 
   const handleEditorSave = useCallback(
     (map: MapDefinition) => {
@@ -235,6 +255,7 @@ function App() {
         onResume: handleResume,
         onStop: handleStop,
         onStepTick: handleStepTick,
+        onStepBack: handleStepBack,
         onRestart: handlePlay,
         onExportMap: handleExportMap,
         onImportMap: handleImportMap,
@@ -250,6 +271,7 @@ function App() {
       onConfigChange={setConfigOverrides}
       keybinds={keybinds}
       onKeybindsChange={handleKeybindsChange}
+      onModifyActor={handleModifyActor}
       renderArea={
         gameState === 'editor' ? (
           <MapEditor

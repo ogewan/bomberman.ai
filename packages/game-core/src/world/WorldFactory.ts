@@ -133,7 +133,7 @@ function createActorsFromSpawns(
       power: config.defaultActorPower,
       upgrade: config.defaultActorUpgrade,
       stunTicksRemaining: 0,
-      shieldTicksRemaining: 0,
+      shieldTicksRemaining: config.defaultActorUpgrade === 'shield' ? config.shieldTicks : 0,
       state: { kind: 'idle' },
     };
 

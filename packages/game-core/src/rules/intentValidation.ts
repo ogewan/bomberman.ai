@@ -51,7 +51,8 @@ function isIntentValid(intent: ActorIntent, actor: ActorState, snapshot: WorldSn
       const activeBombs = Object.values(snapshot.bombs).filter(
         (b) =>
           (b as { ownerActorId: string }).ownerActorId === actor.id &&
-          (b as { state: { kind: string } }).state.kind !== 'removed',
+          (b as { state: { kind: string } }).state.kind !== 'removed' &&
+          (b as { state: { kind: string } }).state.kind !== 'exploding',
       ).length;
       return activeBombs < actor.count;
     }

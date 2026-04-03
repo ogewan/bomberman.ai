@@ -15,8 +15,15 @@ import type {
 import { buildWorldSnapshot } from '../world/WorldFactory.js';
 import { MapContentLoader } from './MapContentLoader.js';
 import { ScenarioLoader } from './ScenarioLoader.js';
+import { resetBombCounter } from '../rules/bombActions.js';
 
 let runCounter = 0;
+
+/** Reset all session-scoped counters — call when starting a fresh session. */
+export function resetSessionCounters(): void {
+  runCounter = 0;
+  resetBombCounter();
+}
 
 export type CreateRunParams = {
   readonly map: MapDefinition;

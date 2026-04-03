@@ -17,6 +17,8 @@ export type MatchConfig = {
   readonly thrownTravelTicks: number;
   readonly kickedBombTravelTicks: number;
 
+  readonly throwDistance: number;
+
   readonly regularBombFuseTicks: number;
   readonly pumpedBombFuseTicks: number;
   readonly explosionDurationTicks: number;
@@ -26,6 +28,8 @@ export type MatchConfig = {
   readonly defaultActorCount: number;
   readonly defaultActorPower: number;
   readonly defaultActorUpgrade: Upgrade;
+
+  readonly stepSize: number;
 
   readonly maxTicks?: number;
   readonly allowBots?: boolean;
@@ -40,6 +44,7 @@ export type MatchRuleOverrides = Partial<
     | 'boostedActorMoveTicks'
     | 'thrownTravelTicks'
     | 'kickedBombTravelTicks'
+    | 'throwDistance'
     | 'regularBombFuseTicks'
     | 'pumpedBombFuseTicks'
     | 'explosionDurationTicks'

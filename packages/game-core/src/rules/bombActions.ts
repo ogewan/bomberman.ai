@@ -14,6 +14,11 @@ import { getCell, getNeighbor, clearOccupant } from '../world/gridHelpers.js';
 
 let bombCounter = 0;
 
+/** Reset bomb ID counter — call when starting a new simulation session. */
+export function resetBombCounter(): void {
+  bombCounter = 0;
+}
+
 /** Apply all bomb-related intents from the validated intent list. */
 export function applyBombIntents(
   snapshot: WorldSnapshot,
@@ -109,15 +114,39 @@ function kickBomb(
 function pickupBomb(snapshot: WorldSnapshot, actor: ActorState): void {
   if (actor.upgrade !== 'carryPump') return;
 
+  // Don't pickup if already holding something
+  const holdingBomb = Object.values(snapshot.bombs).some(
+    (b) =>
+      (b as BombState).state.kind === 'held' &&
+      ((b as BombState).state as { holderActorId: string }).holderActorId === actor.id,
+  );
+  const holdingActor = Object.values(snapshot.actors).some(
+    (a) =>
+      (a as ActorState).state.kind === 'held' &&
+      ((a as ActorState).state as { holderActorId: string }).holderActorId === actor.id,
+  );
+  if (holdingBomb || holdingActor) return;
+
   const facingPos = getNeighbor(actor.cell, actor.facing);
   const facingCell = getCell(snapshot, facingPos);
 
+  // Try bomb pickup
   if (facingCell?.occupant?.kind === 'bomb') {
     const bomb = snapshot.bombs[facingCell.occupant.id] as BombState | undefined;
     if (!bomb || bomb.bombType !== 'regular' || bomb.state.kind !== 'idle') return;
 
     clearOccupant(snapshot, facingPos);
     bomb.state = { kind: 'held', holderActorId: actor.id };
+    return;
+  }
+
+  // Try stunned actor pickup
+  if (facingCell?.occupant?.kind === 'actor') {
+    const target = snapshot.actors[facingCell.occupant.id] as ActorState | undefined;
+    if (!target || target.stunTicksRemaining <= 0 || target.state.kind !== 'idle') return;
+
+    clearOccupant(snapshot, facingPos);
+    target.state = { kind: 'held', holderActorId: actor.id };
   }
 }
 
@@ -164,7 +193,7 @@ function throwHeldEntity(
       from: { ...actor.cell },
       to: { ...dest },
       direction,
-      remainingDistance: actor.power + 2,
+      remainingDistance: config.throwDistance,
       phase: 'leaving',
       phaseTicksElapsed: 0,
       phaseTicksTotal: leavingTicks,
@@ -194,7 +223,7 @@ function throwHeldEntity(
       from: { ...actor.cell },
       to: { ...dest },
       direction,
-      remainingDistance: actor.power + 2,
+      remainingDistance: config.throwDistance,
       phase: 'leaving',
       phaseTicksElapsed: 0,
       phaseTicksTotal: leavingTicks,

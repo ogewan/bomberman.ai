@@ -44,5 +44,8 @@ export type ActorState = {
   stunTicksRemaining: number;
   shieldTicksRemaining: number;
 
+  /** Last movement direction — used for bounce resolution when falling. */
+  lastMoveDirection?: Direction2D;
+
   state: ActorMotionState;
 };

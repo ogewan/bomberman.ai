@@ -13,7 +13,7 @@
  * SimulationRun = data, SimulationRunner = orchestration behavior.
  */
 
-import type { SimulationRun, ActorState, ActorIntent } from '@bomberman65/shared';
+import type { SimulationRun, ActorState, ActorIntent, WorldSnapshot } from '@bomberman65/shared';
 import { deepClone } from '@bomberman65/shared';
 import type { IntentCollector } from '../intents/IntentCollector.js';
 import { executeTick } from './TickPipeline.js';
@@ -26,10 +26,14 @@ export type SimulationRunnerOptions = {
   checkpointInterval?: number;
 };
 
+/** Maximum number of snapshots kept in history for instant step-back. */
+const MAX_HISTORY = 300;
+
 export class SimulationRunner {
   private run: SimulationRun;
   private intentCollector: IntentCollector;
   private recorder: ReplayRecorder | null = null;
+  private history: WorldSnapshot[] = [];
 
   constructor(
     run: SimulationRun,
@@ -135,7 +139,66 @@ export class SimulationRunner {
     this.intentCollector = collector;
   }
 
+  /**
+   * Step back by restoring a previous snapshot.
+   * Uses the history array for recent ticks (≤300), falls back to
+   * recorder-based checkpoint + replay for deeper seeking.
+   * Returns true if step-back succeeded.
+   */
+  stepBack(count: number = 1): boolean {
+    if (this.run.status !== 'paused') return false;
+
+    const currentTick = this.run.snapshot.tick;
+    const targetTick = Math.max(0, currentTick - count);
+
+    // If within history range, use instant restore
+    if (count <= this.history.length) {
+      const targetIdx = this.history.length - count;
+      const restored = this.history[targetIdx];
+      if (!restored) return false;
+
+      // Trim history to the restore point
+      this.history.length = targetIdx;
+      this.run.snapshot = deepClone(restored);
+      return true;
+    }
+
+    // Beyond history — fall back to recorder if available
+    if (!this.recorder) return false;
+    const log = this.recorder.getLog();
+
+    // Find the nearest checkpoint at or before targetTick
+    let baseSnapshot = log.initialSnapshot;
+    let baseTick = 0;
+
+    for (const cp of log.checkpoints) {
+      if (cp.tick <= targetTick && cp.tick > baseTick) {
+        baseSnapshot = cp.snapshot;
+        baseTick = cp.tick;
+      }
+    }
+
+    // Restore from checkpoint and replay intents forward to targetTick
+    this.run.snapshot = deepClone(baseSnapshot);
+
+    for (const entry of log.entries) {
+      if (entry.tick < baseTick) continue;
+      if (entry.tick >= targetTick) break;
+      executeTick(this.run.snapshot, [...entry.intents], this.run.config);
+    }
+
+    // Rebuild history from the restored point (empty — we've jumped)
+    this.history.length = 0;
+    return true;
+  }
+
   private executeAndRecord(intents: ActorIntent[]): void {
+    // Save snapshot for step-back before execution
+    this.history.push(deepClone(this.run.snapshot));
+    if (this.history.length > MAX_HISTORY) {
+      this.history.shift();
+    }
+
     const tick = this.run.snapshot.tick;
 
     // Record intents before execution

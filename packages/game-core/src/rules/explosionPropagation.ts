@@ -11,7 +11,7 @@
 
 import type { BombState, MatchConfig, WorldSnapshot, Vec3i } from '@bomberman65/shared';
 import { CARDINAL_DIRECTIONS, DIRECTION_TO_VECTOR } from '@bomberman65/shared';
-import { getCell, isInBounds } from '../world/gridHelpers.js';
+import { getCell, isInBounds, clearOccupant } from '../world/gridHelpers.js';
 
 /** Transition bombs whose fuse has reached zero into exploding state. */
 export function transitionExpiredBombs(snapshot: WorldSnapshot, config: MatchConfig): void {
@@ -42,6 +42,12 @@ export function detonateBomb(snapshot: WorldSnapshot, bomb: BombState, config: M
       ? computeRegularExplosion(snapshot, bomb.cell, bomb.power)
       : computePumpedExplosion(snapshot, bomb.cell, bomb.power);
 
+  // Clear occupancy before transitioning — the cell is now free for actors to place new bombs
+  const bombCell = getCell(snapshot, bomb.cell);
+  if (bombCell?.occupant?.kind === 'bomb' && bombCell.occupant.id === bomb.id) {
+    clearOccupant(snapshot, bomb.cell);
+  }
+
   bomb.state = {
     kind: 'exploding',
     origin,
@@ -51,12 +57,17 @@ export function detonateBomb(snapshot: WorldSnapshot, bomb: BombState, config: M
 }
 
 /**
- * Regular bomb: square propagation using cardinal radius from origin.
- * Propagates in 4 cardinal directions, blocked by walls.
+ * Regular bomb: filled square propagation at origin z-level.
+ * Cardinal arms propagate first; diagonal cells are only hit if BOTH
+ * adjacent cardinal cells (relative to origin) are reachable.
+ * Walls block propagation. Breakable cells are affected but stop further reach.
  */
 function computeRegularExplosion(snapshot: WorldSnapshot, origin: Vec3i, power: number): Vec3i[] {
   const cells: Vec3i[] = [{ ...origin }];
+  const cardinalReach = new Set<string>();
+  cardinalReach.add(`${origin.x},${origin.y}`);
 
+  // Step 1: cardinal arms — walk each direction, blocked by walls/breakables
   for (const dir of CARDINAL_DIRECTIONS) {
     const vec = DIRECTION_TO_VECTOR[dir];
     for (let i = 1; i <= power; i++) {
@@ -68,15 +79,34 @@ function computeRegularExplosion(snapshot: WorldSnapshot, origin: Vec3i, power: 
 
       if (!isInBounds(snapshot, pos)) break;
       const cell = getCell(snapshot, pos);
-      if (!cell) break;
+      if (!cell || cell.terrain === 'wall') break;
 
-      // Walls block regular explosions
-      if (cell.terrain === 'wall') break;
-
+      cardinalReach.add(`${pos.x},${pos.y}`);
       cells.push(pos);
 
-      // Breakables stop further propagation in this direction but are affected
       if (cell.terrain === 'breakable') break;
+    }
+  }
+
+  // Step 2: diagonal cells — gated by both adjacent cardinals from origin
+  for (let dx = -power; dx <= power; dx++) {
+    for (let dy = -power; dy <= power; dy++) {
+      if (dx === 0 || dy === 0) continue; // cardinals already handled
+      if (Math.max(Math.abs(dx), Math.abs(dy)) > power) continue;
+
+      const pos: Vec3i = { x: origin.x + dx, y: origin.y + dy, z: origin.z };
+      if (!isInBounds(snapshot, pos)) continue;
+      const cell = getCell(snapshot, pos);
+      if (!cell || cell.terrain === 'wall') continue;
+
+      // Both axis-aligned cardinal cells from origin must be reachable
+      if (
+        !cardinalReach.has(`${origin.x + dx},${origin.y}`) ||
+        !cardinalReach.has(`${origin.x},${origin.y + dy}`)
+      )
+        continue;
+
+      cells.push(pos);
     }
   }
 
@@ -84,64 +114,24 @@ function computeRegularExplosion(snapshot: WorldSnapshot, origin: Vec3i, power: 
 }
 
 /**
- * Pumped bomb: cube version of regular propagation.
- * Extends in cardinal directions AND vertically. Not blocked by walls,
- * but walls are not destroyed unless already breakable.
+ * Pumped bomb: filled cube propagation across z-levels.
+ * Full Chebyshev square at each z-level from z-power to z+power.
+ * Walls do NOT block propagation (but are not destroyed — handled in blastEffects).
  */
 function computePumpedExplosion(snapshot: WorldSnapshot, origin: Vec3i, power: number): Vec3i[] {
-  const cells: Vec3i[] = [{ ...origin }];
-  const seen = new Set<string>();
-  seen.add(`${origin.x},${origin.y},${origin.z}`);
+  const cells: Vec3i[] = [];
 
-  // Horizontal propagation (same as regular but not blocked by walls)
-  for (const dir of CARDINAL_DIRECTIONS) {
-    const vec = DIRECTION_TO_VECTOR[dir];
-    for (let i = 1; i <= power; i++) {
-      const pos: Vec3i = {
-        x: origin.x + vec.dx * i,
-        y: origin.y + vec.dy * i,
-        z: origin.z,
-      };
-
-      if (!isInBounds(snapshot, pos)) break;
-      const key = `${pos.x},${pos.y},${pos.z}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      cells.push(pos);
-    }
-  }
-
-  // Vertical propagation (up and down)
   for (let dz = -power; dz <= power; dz++) {
-    if (dz === 0) continue;
-    const pos: Vec3i = { x: origin.x, y: origin.y, z: origin.z + dz };
-    if (!isInBounds(snapshot, pos)) continue;
-    const key = `${pos.x},${pos.y},${pos.z}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    cells.push(pos);
-  }
-
-  // Cardinal propagation on other z-levels within cube
-  for (let dz = -power; dz <= power; dz++) {
-    if (dz === 0) continue;
     const z = origin.z + dz;
     if (z < 0 || z >= snapshot.size.z) continue;
 
-    for (const dir of CARDINAL_DIRECTIONS) {
-      const vec = DIRECTION_TO_VECTOR[dir];
-      const remainingPower = power - Math.abs(dz);
-      for (let i = 1; i <= remainingPower; i++) {
-        const pos: Vec3i = {
-          x: origin.x + vec.dx * i,
-          y: origin.y + vec.dy * i,
-          z,
-        };
+    for (let dx = -power; dx <= power; dx++) {
+      for (let dy = -power; dy <= power; dy++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) > power) continue;
 
-        if (!isInBounds(snapshot, pos)) break;
-        const key = `${pos.x},${pos.y},${pos.z}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
+        const pos: Vec3i = { x: origin.x + dx, y: origin.y + dy, z };
+        if (!isInBounds(snapshot, pos)) continue;
+
         cells.push(pos);
       }
     }

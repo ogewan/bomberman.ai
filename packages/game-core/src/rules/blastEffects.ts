@@ -11,7 +11,7 @@
 
 import type { ActorState, BombState, MatchConfig, WorldSnapshot } from '@bomberman65/shared';
 import { vec3iEqual } from '@bomberman65/shared';
-import { getCell } from '../world/gridHelpers.js';
+import { getCell, clearOccupant } from '../world/gridHelpers.js';
 import { detonateBomb } from './explosionPropagation.js';
 
 /** Apply blast effects for all currently exploding bombs. */
@@ -77,8 +77,12 @@ export function cleanup(snapshot: WorldSnapshot): void {
       bomb.state = { kind: 'removed' };
     }
 
-    // Remove fully removed bombs from the table
+    // Remove fully removed bombs from the table and clear their occupancy
     if (bomb.state.kind === 'removed') {
+      const bombCell = getCell(snapshot, bomb.cell);
+      if (bombCell?.occupant?.kind === 'bomb' && bombCell.occupant.id === bomb.id) {
+        clearOccupant(snapshot, bomb.cell);
+      }
       delete snapshot.bombs[id];
     }
   }

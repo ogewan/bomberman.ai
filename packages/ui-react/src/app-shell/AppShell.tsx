@@ -27,6 +27,7 @@ export type AppShellProps = {
   onConfigChange?: (overrides: Partial<MatchConfig>) => void;
   keybinds?: KeybindConfig;
   onKeybindsChange?: (keybinds: KeybindConfig) => void;
+  onModifyActor?: (actorId: string, field: string, value: number) => void;
 };
 
 export function AppShell({
@@ -38,6 +39,7 @@ export function AppShell({
   onConfigChange,
   keybinds,
   onKeybindsChange,
+  onModifyActor,
 }: AppShellProps) {
   const actorCount = snapshot
     ? (Object.values(snapshot.actors) as ActorState[]).filter((a) => a.state.kind !== 'eliminated')
@@ -60,7 +62,7 @@ export function AppShell({
           onKeybindsChange={onKeybindsChange}
         />
       }
-      rightSidebar={<RightSidebar snapshot={snapshot} />}
+      rightSidebar={<RightSidebar snapshot={snapshot} onModifyActor={onModifyActor} />}
       bottomBar={<BottomBar actorCount={actorCount} bombCount={bombCount} />}
       center={renderArea}
     />

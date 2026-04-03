@@ -5,6 +5,7 @@
 
 import type { ActorVisual } from '@bomberman65/game-core';
 import { DIRECTION_TO_VECTOR, type Direction2D } from '@bomberman65/shared';
+import { Text } from '@react-three/drei';
 
 export type ActorLayerProps = {
   actors: ActorVisual[];
@@ -45,13 +46,24 @@ export function ActorLayer({ actors, onSelectActor }: ActorLayerProps) {
               />
             </mesh>
 
-            {/* Facing arrow — only on non-held actors */}
-            {!actor.isHeld && (
-              <mesh position={[0, 0, 0.45]} rotation={[0, 0, facingAngle]}>
-                <coneGeometry args={[0.1, 0.2, 4]} />
-                <meshStandardMaterial color="#ffffff" />
-              </mesh>
-            )}
+            {/* Facing arrow or stun indicator — only on non-held actors */}
+            {!actor.isHeld &&
+              (actor.isStunned ? (
+                <Text
+                  position={[0, 0, 0.55]}
+                  fontSize={0.3}
+                  color="yellow"
+                  anchorX="center"
+                  anchorY="middle"
+                >
+                  ?
+                </Text>
+              ) : (
+                <mesh position={[0, 0, 0.45]} rotation={[0, 0, facingAngle]}>
+                  <coneGeometry args={[0.1, 0.2, 4]} />
+                  <meshStandardMaterial color="#ffffff" />
+                </mesh>
+              ))}
           </group>
         );
       })}
