@@ -49,3 +49,4 @@ release/
 # Misc
 *.tgz
 .cache/
+.claude/settings.local.json
