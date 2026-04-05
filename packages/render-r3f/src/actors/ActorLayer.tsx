@@ -1,8 +1,12 @@
 /**
  * ActorLayer — renders actors as color-coded capsules with facing arrow.
  * Held actors render above their holder as a smaller floating entity.
+ *
+ * Performance: geometry shared via useMemo; materials that vary per-actor remain inline.
  */
 
+import React, { useMemo } from 'react';
+import * as THREE from 'three';
 import type { ActorVisual } from '@bomberman65/game-core';
 import { DIRECTION_TO_VECTOR, type Direction2D } from '@bomberman65/shared';
 import { Text } from '@react-three/drei';
@@ -12,7 +16,14 @@ export type ActorLayerProps = {
   onSelectActor?: (id: string) => void;
 };
 
-export function ActorLayer({ actors, onSelectActor }: ActorLayerProps) {
+export const ActorLayer = React.memo(function ActorLayer({
+  actors,
+  onSelectActor,
+}: ActorLayerProps) {
+  const capsuleGeo = useMemo(() => new THREE.CapsuleGeometry(0.2, 0.4, 4, 8), []);
+  const coneGeo = useMemo(() => new THREE.ConeGeometry(0.1, 0.2, 4), []);
+  const coneMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#ffffff' }), []);
+
   return (
     <>
       {actors.map((actor) => {
@@ -35,8 +46,7 @@ export function ActorLayer({ actors, onSelectActor }: ActorLayerProps) {
               onSelectActor?.(actor.id);
             }}
           >
-            <mesh rotation={[Math.PI / 2, 0, 0]}>
-              <capsuleGeometry args={[0.2, 0.4, 4, 8]} />
+            <mesh rotation={[Math.PI / 2, 0, 0]} geometry={capsuleGeo}>
               <meshStandardMaterial
                 color={actor.color}
                 emissive={actor.isShielded ? '#4444ff' : '#000000'}
@@ -59,17 +69,19 @@ export function ActorLayer({ actors, onSelectActor }: ActorLayerProps) {
                   ?
                 </Text>
               ) : (
-                <mesh position={[0, 0, 0.45]} rotation={[0, 0, facingAngle]}>
-                  <coneGeometry args={[0.1, 0.2, 4]} />
-                  <meshStandardMaterial color="#ffffff" />
-                </mesh>
+                <mesh
+                  position={[0, 0, 0.45]}
+                  rotation={[0, 0, facingAngle]}
+                  geometry={coneGeo}
+                  material={coneMat}
+                />
               ))}
           </group>
         );
       })}
     </>
   );
-}
+});
 
 function interpolateActorPosition(actor: ActorVisual) {
   if (!actor.motionFrom || !actor.motionTo || actor.motionProgress === 0) {

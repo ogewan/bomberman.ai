@@ -1,8 +1,13 @@
 /**
  * BombLayer — renders bombs as spheres and explosions as translucent cubes.
  * Held bombs float above holder. Pumped bombs render larger. Interpolates motion.
+ *
+ * Performance: geometry and explosion material shared via useMemo.
+ * Bomb body materials vary per fuse progress so they remain inline.
  */
 
+import React, { useMemo } from 'react';
+import * as THREE from 'three';
 import type { BombVisual } from '@bomberman65/game-core';
 import type { Vec3i } from '@bomberman65/shared';
 
@@ -12,7 +17,18 @@ export type BombLayerProps = {
   onSelectBomb?: (id: string) => void;
 };
 
-export function BombLayer({ bombs, explosionCells, onSelectBomb }: BombLayerProps) {
+export const BombLayer = React.memo(function BombLayer({
+  bombs,
+  explosionCells,
+  onSelectBomb,
+}: BombLayerProps) {
+  const sphereGeo = useMemo(() => new THREE.SphereGeometry(0.3, 16, 16), []);
+  const explosionGeo = useMemo(() => new THREE.BoxGeometry(0.9, 0.9, 0.9), []);
+  const explosionMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#ff4400', opacity: 0.6, transparent: true }),
+    [],
+  );
+
   return (
     <>
       {bombs.map((bomb) => {
@@ -28,12 +44,12 @@ export function BombLayer({ bombs, explosionCells, onSelectBomb }: BombLayerProp
             key={bomb.id}
             position={[pos.x, pos.y, pos.z + zOffset]}
             scale={[sizeScale, sizeScale, sizeScale]}
+            geometry={sphereGeo}
             onClick={(e) => {
               e.stopPropagation();
               onSelectBomb?.(bomb.id);
             }}
           >
-            <sphereGeometry args={[0.3, 16, 16]} />
             <meshStandardMaterial
               color={color}
               opacity={bomb.isHeld ? 0.8 : 1}
@@ -44,14 +60,16 @@ export function BombLayer({ bombs, explosionCells, onSelectBomb }: BombLayerProp
       })}
 
       {explosionCells.map((cell, i) => (
-        <mesh key={`exp_${i}`} position={[cell.x, cell.y, cell.z + 0.5]}>
-          <boxGeometry args={[0.9, 0.9, 0.9]} />
-          <meshStandardMaterial color="#ff4400" opacity={0.6} transparent />
-        </mesh>
+        <mesh
+          key={`exp_${i}`}
+          position={[cell.x, cell.y, cell.z + 0.5]}
+          geometry={explosionGeo}
+          material={explosionMat}
+        />
       ))}
     </>
   );
-}
+});
 
 function interpolateBombPosition(bomb: BombVisual) {
   if (!bomb.motionFrom || !bomb.motionTo || bomb.motionProgress === 0) {

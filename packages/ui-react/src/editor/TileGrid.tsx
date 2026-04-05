@@ -12,6 +12,14 @@ const TERRAIN_COLORS: Record<string, string> = {
   ramp: '#6a6',
 };
 
+/** Unicode arrow showing ramp slope direction (entry→exit, low→high). */
+const RAMP_ARROWS: Record<string, string> = {
+  north: '\u2191',
+  south: '\u2193',
+  east: '\u2192',
+  west: '\u2190',
+};
+
 const ITEM_MARKERS: Record<string, string> = {
   power: 'P',
   count: 'C',
@@ -74,7 +82,7 @@ export function TileGrid({
                   position: 'relative',
                   boxSizing: 'border-box',
                 }}
-                title={`(${x},${y},${layer}) ${cell.terrain}${cell.item ? ` [${cell.item.type}]` : ''}${spawn ? ` spawn:${spawn.id}` : ''}`}
+                title={`(${x},${y},${layer}) ${cell.terrain}${cell.ramp ? ` ${cell.ramp.entry}→${cell.ramp.exit}` : ''}${cell.item ? ` [${cell.item.type}]` : ''}${spawn ? ` spawn:${spawn.id}` : ''}`}
               >
                 {spawn && (
                   <div
@@ -89,6 +97,11 @@ export function TileGrid({
                   >
                     {spawn.kind === 'player' ? 'P' : 'B'}
                   </div>
+                )}
+                {cell.terrain === 'ramp' && cell.ramp && (
+                  <span style={{ color: '#fff', fontSize: 16, opacity: 0.7 }}>
+                    {RAMP_ARROWS[cell.ramp.exit] ?? '?'}
+                  </span>
                 )}
                 {itemMarker && <span style={{ color: '#ff0', fontSize: 12 }}>{itemMarker}</span>}
               </div>

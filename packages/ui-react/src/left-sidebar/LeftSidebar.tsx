@@ -5,10 +5,11 @@
  */
 
 import { useSessionStore } from '@bomberman65/app-state';
-import type { MatchConfig, KeybindConfig } from '@bomberman65/shared';
+import type { MatchConfig, KeybindConfig, BotBehavior, MapDefinition } from '@bomberman65/shared';
 import { Accordion } from '../layout/Accordion.js';
 import { MatchConfigEditor } from '../controls/MatchConfigEditor.js';
 import { KeybindEditor } from '../controls/KeybindEditor.js';
+import { AgentSetup, type BotSlot } from '../controls/AgentSetup.js';
 import type { MapSelectorProps } from '../app-shell/AppShell.js';
 
 export type LeftSidebarProps = {
@@ -18,6 +19,11 @@ export type LeftSidebarProps = {
   onConfigChange?: (overrides: Partial<MatchConfig>) => void;
   keybinds?: KeybindConfig;
   onKeybindsChange?: (keybinds: KeybindConfig) => void;
+  bots?: BotSlot[];
+  onBotsChange?: (bots: BotSlot[]) => void;
+  behaviors?: BotBehavior[];
+  onBehaviorsChange?: (behaviors: BotBehavior[]) => void;
+  currentMap?: MapDefinition | null;
 };
 
 export function LeftSidebar({
@@ -27,6 +33,11 @@ export function LeftSidebar({
   onConfigChange,
   keybinds,
   onKeybindsChange,
+  bots,
+  onBotsChange,
+  behaviors,
+  onBehaviorsChange,
+  currentMap,
 }: LeftSidebarProps) {
   const gameState = useSessionStore((s) => s.gameState);
 
@@ -84,8 +95,18 @@ export function LeftSidebar({
       </Accordion>
 
       {/* Agents */}
-      <Accordion title="Agents" enabled={isSetup} defaultOpen={false}>
-        <div style={{ fontSize: 11, color: '#888' }}>Agent assignment (future).</div>
+      <Accordion title="Agents" enabled={isSetup} defaultOpen={isSetup}>
+        {bots && onBotsChange && behaviors && onBehaviorsChange ? (
+          <AgentSetup
+            bots={bots}
+            onBotsChange={onBotsChange}
+            behaviors={behaviors}
+            onBehaviorsChange={onBehaviorsChange}
+            currentMap={currentMap ?? null}
+          />
+        ) : (
+          <div style={{ fontSize: 11, color: '#888' }}>Agent assignment not available.</div>
+        )}
       </Accordion>
 
       {/* Run Info */}

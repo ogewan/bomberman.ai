@@ -2,7 +2,8 @@
   "maps": [
     { "id": "training", "name": "Training Grid", "file": "maps/training.json" },
     { "id": "competitive", "name": "Battle Arena", "file": "maps/competitive.json" },
-    { "id": "elevation", "name": "High Ground", "file": "maps/elevation.json" }
+    { "id": "elevation", "name": "High Ground", "file": "maps/elevation.json" },
+    { "id": "ramp-arena", "name": "Ramp Arena", "file": "maps/ramp-arena.json" }
   ],
   "scenarios": [
     {

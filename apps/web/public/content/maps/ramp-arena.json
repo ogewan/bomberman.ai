@@ -1,0 +1,38 @@
+{
+  "id": "ramp-arena",
+  "version": "v0",
+  "name": "Ramp Arena",
+  "description": "9x9x2 map with ramps connecting ground and elevated platforms. Tests ramp traversal for actors and kicked bombs.",
+  "size": { "x": 9, "y": 9, "z": 2 },
+  "cells": [
+    [
+      [{"terrain":"wall"},{"terrain":"wall"},{"terrain":"wall"},{"terrain":"wall"},{"terrain":"wall"},{"terrain":"wall"},{"terrain":"wall"},{"terrain":"wall"},{"terrain":"wall"}],
+      [{"terrain":"wall"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"breakable"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"wall"}],
+      [{"terrain":"wall"},{"terrain":"empty"},{"terrain":"breakable"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"breakable"},{"terrain":"empty"},{"terrain":"wall"}],
+      [{"terrain":"wall"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"wall"},{"terrain":"wall"},{"terrain":"wall"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"wall"}],
+      [{"terrain":"wall"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"wall"},{"terrain":"wall"},{"terrain":"wall"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"wall"}],
+      [{"terrain":"wall"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"wall"},{"terrain":"wall"},{"terrain":"wall"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"wall"}],
+      [{"terrain":"wall"},{"terrain":"empty"},{"terrain":"breakable"},{"terrain":"empty"},{"terrain":"ramp","ramp":{"entry":"south","exit":"north","deltaZ":1}},{"terrain":"empty"},{"terrain":"breakable"},{"terrain":"empty"},{"terrain":"wall"}],
+      [{"terrain":"wall"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"wall"}],
+      [{"terrain":"wall"},{"terrain":"wall"},{"terrain":"wall"},{"terrain":"wall"},{"terrain":"wall"},{"terrain":"wall"},{"terrain":"wall"},{"terrain":"wall"},{"terrain":"wall"}]
+    ],
+    [
+      [{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"}],
+      [{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"}],
+      [{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"}],
+      [{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"breakable","item":{"type":"power","hiddenInBreakable":true,"dropChance":1}},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"}],
+      [{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"breakable"},{"terrain":"empty"},{"terrain":"breakable","item":{"type":"upgrade-kick","hiddenInBreakable":true,"dropChance":1}},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"}],
+      [{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"}],
+      [{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"}],
+      [{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"}],
+      [{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"},{"terrain":"empty"}]
+    ]
+  ],
+  "spawns": [
+    { "id": "p1", "kind": "player", "cell": { "x": 1, "y": 1, "z": 0 }, "facing": "south" },
+    { "id": "b1", "kind": "bot", "cell": { "x": 7, "y": 7, "z": 0 }, "facing": "north" },
+    { "id": "b2", "kind": "bot", "cell": { "x": 7, "y": 1, "z": 0 }, "facing": "west" },
+    { "id": "b3", "kind": "bot", "cell": { "x": 1, "y": 7, "z": 0 }, "facing": "east" }
+  ],
+  "tags": ["ramp", "elevation", "test", "4-player"]
+}

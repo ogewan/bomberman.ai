@@ -3,12 +3,16 @@
  * containing only the data the renderer needs.
  */
 
-import type { WorldSnapshot, Vec3i, ActorState, BombState } from '@bomberman65/shared';
+import type { WorldSnapshot, Vec3i, ActorState, BombState, Direction2D } from '@bomberman65/shared';
 
 /** Visual representation of a terrain cell. */
 export type TerrainInstance = {
   readonly position: Vec3i;
   readonly type: 'wall' | 'breakable' | 'ramp' | 'empty';
+  /** Ramp entry direction (low side). Present only when type === 'ramp'. */
+  readonly rampEntry?: Direction2D;
+  /** Ramp exit direction (high side). Present only when type === 'ramp'. */
+  readonly rampExit?: Direction2D;
 };
 
 /** Visual representation of an actor. */
@@ -60,22 +64,41 @@ export type RenderModel = {
 
 const ACTOR_COLORS = ['#4488ff', '#ff4444', '#44cc44', '#ffaa00', '#cc44cc', '#44cccc'];
 
-/** Build a RenderModel from a WorldSnapshot. */
-export function buildRenderModel(snapshot: WorldSnapshot): RenderModel {
+/** Build the static terrain model from a snapshot. Only needs to be called when terrain changes (e.g. breakable destroyed). */
+export function buildTerrainModel(snapshot: WorldSnapshot): TerrainInstance[] {
   const terrain: TerrainInstance[] = [];
-  const items: ItemVisual[] = [];
-
   for (let z = 0; z < snapshot.size.z; z++) {
     for (let y = 0; y < snapshot.size.y; y++) {
       for (let x = 0; x < snapshot.size.x; x++) {
         const cell = snapshot.cells[z]?.[y]?.[x];
-        if (!cell) continue;
+        if (!cell || cell.terrain === 'empty') continue;
+        terrain.push({
+          position: { x, y, z },
+          type: cell.terrain,
+          ...(cell.ramp ? { rampEntry: cell.ramp.entry, rampExit: cell.ramp.exit } : {}),
+        });
+      }
+    }
+  }
+  return terrain;
+}
 
-        if (cell.terrain !== 'empty') {
-          terrain.push({ position: { x, y, z }, type: cell.terrain });
-        }
+/**
+ * Build a RenderModel from a WorldSnapshot.
+ * Pass a cached terrain array to skip the full grid scan on most ticks.
+ */
+export function buildRenderModel(
+  snapshot: WorldSnapshot,
+  cachedTerrain?: TerrainInstance[],
+): RenderModel {
+  const terrain = cachedTerrain ?? buildTerrainModel(snapshot);
 
-        if (cell.item) {
+  const items: ItemVisual[] = [];
+  for (let z = 0; z < snapshot.size.z; z++) {
+    for (let y = 0; y < snapshot.size.y; y++) {
+      for (let x = 0; x < snapshot.size.x; x++) {
+        const cell = snapshot.cells[z]?.[y]?.[x];
+        if (cell?.item) {
           items.push({ position: { x, y, z }, type: cell.item });
         }
       }

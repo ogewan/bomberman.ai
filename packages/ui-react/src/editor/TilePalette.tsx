@@ -3,10 +3,11 @@
  */
 
 import React from 'react';
-import type { TerrainType, ItemType } from '@bomberman65/shared';
+import type { TerrainType, ItemType, Direction2D } from '@bomberman65/shared';
+import { CARDINAL_DIRECTIONS, OPPOSITE_DIRECTION } from '@bomberman65/shared';
 
 export type PaintMode =
-  | { kind: 'terrain'; terrain: TerrainType }
+  | { kind: 'terrain'; terrain: TerrainType; rampEntry?: Direction2D; rampExit?: Direction2D }
   | { kind: 'item'; itemType: ItemType; dropChance: number; hiddenInBreakable: boolean }
   | { kind: 'eraseItem' }
   | { kind: 'spawn'; spawnKind: 'player' | 'bot' | 'generic' };
@@ -39,7 +40,13 @@ export function TilePalette({ paintMode, onPaintModeChange }: TilePaletteProps) 
         {TERRAINS.map((t) => (
           <button
             key={t.type}
-            onClick={() => onPaintModeChange({ kind: 'terrain', terrain: t.type })}
+            onClick={() =>
+              onPaintModeChange(
+                t.type === 'ramp'
+                  ? { kind: 'terrain', terrain: 'ramp', rampEntry: 'south', rampExit: 'north' }
+                  : { kind: 'terrain', terrain: t.type },
+              )
+            }
             style={{
               ...btnStyle,
               background:
@@ -52,6 +59,51 @@ export function TilePalette({ paintMode, onPaintModeChange }: TilePaletteProps) 
           </button>
         ))}
       </div>
+
+      {paintMode.kind === 'terrain' && paintMode.terrain === 'ramp' && (
+        <div style={{ marginBottom: 8 }}>
+          <label style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 2 }}>
+            Entry:
+            <select
+              value={paintMode.rampEntry ?? 'south'}
+              onChange={(e) => {
+                const entry = e.target.value as Direction2D;
+                onPaintModeChange({
+                  ...paintMode,
+                  rampEntry: entry,
+                  rampExit: OPPOSITE_DIRECTION[entry],
+                });
+              }}
+              style={inputStyle}
+            >
+              {CARDINAL_DIRECTIONS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            Exit:
+            <select
+              value={paintMode.rampExit ?? 'north'}
+              onChange={(e) =>
+                onPaintModeChange({ ...paintMode, rampExit: e.target.value as Direction2D })
+              }
+              style={inputStyle}
+            >
+              {CARDINAL_DIRECTIONS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div style={{ fontSize: 9, color: '#888', marginTop: 2 }}>
+            {paintMode.rampEntry ?? 'south'} (low) → {paintMode.rampExit ?? 'north'} (high)
+          </div>
+        </div>
+      )}
 
       <div style={{ fontWeight: 'bold', marginBottom: 4, color: '#aaa' }}>Items</div>
       <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', marginBottom: 4 }}>
@@ -89,17 +141,20 @@ export function TilePalette({ paintMode, onPaintModeChange }: TilePaletteProps) 
       {paintMode.kind === 'item' && (
         <div style={{ marginBottom: 8 }}>
           <label style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            Drop %:
+            Drop: {Math.round(paintMode.dropChance * 100)}%
             <input
-              type="number"
+              type="range"
               min={0}
               max={1}
-              step={0.1}
+              step={0.05}
               value={paintMode.dropChance}
               onChange={(e) =>
-                onPaintModeChange({ ...paintMode, dropChance: Number(e.target.value) })
+                onPaintModeChange({
+                  ...paintMode,
+                  dropChance: Math.min(1, Math.max(0, Number(e.target.value))),
+                })
               }
-              style={{ width: 50, ...inputStyle }}
+              style={{ flex: 1 }}
             />
           </label>
           <label style={{ display: 'flex', gap: 4, alignItems: 'center', marginTop: 2 }}>

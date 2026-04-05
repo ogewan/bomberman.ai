@@ -3,7 +3,7 @@
  * v0 visual language: RGB-coded colored planes.
  */
 
-import { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { ItemVisual } from '@bomberman65/game-core';
 import * as THREE from 'three';
@@ -20,7 +20,7 @@ export type ItemLayerProps = {
   items: ItemVisual[];
 };
 
-export function ItemLayer({ items }: ItemLayerProps) {
+export const ItemLayer = React.memo(function ItemLayer({ items }: ItemLayerProps) {
   return (
     <>
       {items.map((item, i) => (
@@ -28,10 +28,11 @@ export function ItemLayer({ items }: ItemLayerProps) {
       ))}
     </>
   );
-}
+});
 
 function BillboardItem({ item }: { item: ItemVisual }) {
   const groupRef = useRef<THREE.Group>(null);
+  const planeGeo = useMemo(() => new THREE.PlaneGeometry(0.4, 0.4), []);
 
   // Face the camera every frame
   useFrame(({ camera }) => {
@@ -42,8 +43,7 @@ function BillboardItem({ item }: { item: ItemVisual }) {
 
   return (
     <group ref={groupRef} position={[item.position.x, item.position.y, item.position.z + 0.3]}>
-      <mesh>
-        <planeGeometry args={[0.4, 0.4]} />
+      <mesh geometry={planeGeo}>
         <meshStandardMaterial
           color={ITEM_COLORS[item.type] ?? '#ffffff'}
           emissive={ITEM_COLORS[item.type] ?? '#ffffff'}

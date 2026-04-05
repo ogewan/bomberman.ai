@@ -88,3 +88,10 @@ export {
 
 // Keybinds
 export { type KeybindConfig, DEFAULT_KEYBINDS } from './types/keybinds.js';
+
+// Bot behavior
+export {
+  type BotBehavior,
+  BOT_BEHAVIOR_PRESETS,
+  createDefaultBehavior,
+} from './types/botBehavior.js';

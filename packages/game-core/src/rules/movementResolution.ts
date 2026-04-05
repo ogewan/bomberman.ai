@@ -13,9 +13,12 @@ import type {
   ActorIntent,
   ActorState,
   BombState,
+  Cell,
   MatchConfig,
+  Vec3i,
   WorldSnapshot,
 } from '@bomberman65/shared';
+import { OPPOSITE_DIRECTION, type Direction2D } from '@bomberman65/shared';
 import {
   getCell,
   getNeighbor,
@@ -39,16 +42,9 @@ export function applyMoveIntents(
     // Always update facing direction, even if movement is blocked
     actor.facing = intent.direction;
 
-    const dest = getNeighbor(actor.cell, intent.direction);
-
-    // Check destination validity — if blocked, actor turns but doesn't move
-    if (!isInBounds(snapshot, dest)) continue;
-    const destCell = getCell(snapshot, dest);
-    if (!destCell) continue;
-    if (isBlockingTerrain(destCell)) continue;
-    if (destCell.occupant) continue;
-
-    // TODO: ramp traversal rules (check entry/exit validity)
+    // Resolve destination with ramp traversal rules (entry/exit validity, z adjustment)
+    const dest = resolveMovementDestination(snapshot, actor.cell, intent.direction);
+    if (!dest) continue;
 
     // Start surface travel
     const totalTicks = config.actorMoveTicks;
@@ -171,20 +167,12 @@ function resolveBombSurfaceTravel(snapshot: WorldSnapshot, config: MatchConfig):
       bomb.cell = { ...bomb.state.to };
       bomb.lastMoveDirection = bomb.state.direction;
 
-      // Continue sliding in same direction
-      const nextDest = getNeighbor(bomb.state.to, bomb.state.direction);
-      const nextCell = getCell(snapshot, nextDest);
+      // Continue sliding in same direction (ramp-aware)
+      const nextDest = resolveKickedBombDestination(snapshot, bomb.cell, bomb.state.direction);
 
-      if (
-        !nextCell ||
-        isBlockingTerrain(nextCell) ||
-        nextCell.occupant ||
-        !isInBounds(snapshot, nextDest)
-      ) {
-        // Can't continue — stop
+      if (!nextDest) {
         bomb.state = { kind: 'idle' };
       } else {
-        // Continue kicked travel
         const leavingTicks = Math.floor((bomb.state.phaseTicksTotal * 2) / 2);
         bomb.state = {
           kind: 'surfaceTravel',
@@ -203,7 +191,152 @@ function resolveBombSurfaceTravel(snapshot: WorldSnapshot, config: MatchConfig):
   }
 }
 
-import type { Cell } from '@bomberman65/shared';
+/**
+ * Resolve the movement destination for an actor, accounting for ramp traversal rules.
+ *
+ * Ramp rules:
+ * - On a ramp: can only move in the entry direction (low side, same z) or
+ *   exit direction (high side, z + deltaZ). Other directions are blocked.
+ * - Entering a ramp from the same z: must approach from the entry side
+ *   (move direction is opposite of ramp's entry direction).
+ * - Descending onto a ramp from above: must approach from the exit side
+ *   (move direction is opposite of ramp's exit direction). Only when no
+ *   walkable cell exists at the same z.
+ */
+function resolveMovementDestination(
+  snapshot: WorldSnapshot,
+  from: Vec3i,
+  direction: Direction2D,
+): Vec3i | null {
+  const srcCell = getCell(snapshot, from);
+  if (!srcCell) return null;
+
+  // Case 1: Actor is ON a ramp — restricted to entry/exit directions
+  if (srcCell.terrain === 'ramp' && srcCell.ramp) {
+    const ramp = srcCell.ramp;
+    if (direction === ramp.entry) {
+      // Leaving from entry (low) side — same z
+      const dest = getNeighbor(from, direction);
+      return isValidMoveDest(snapshot, dest) ? dest : null;
+    }
+    if (direction === ramp.exit) {
+      // Leaving from exit (high) side — z + deltaZ
+      const neighbor = getNeighbor(from, direction);
+      const dest: Vec3i = { x: neighbor.x, y: neighbor.y, z: neighbor.z + ramp.deltaZ };
+      return isValidMoveDest(snapshot, dest) ? dest : null;
+    }
+    // All other directions blocked while on a ramp
+    return null;
+  }
+
+  // Case 2: Actor is NOT on a ramp — check flat destination
+  const flatDest = getNeighbor(from, direction);
+
+  if (isInBounds(snapshot, flatDest)) {
+    const destCell = getCell(snapshot, flatDest);
+    if (destCell) {
+      if (destCell.terrain === 'ramp' && destCell.ramp) {
+        // Attempting to enter a ramp at the same z-level
+        const approachSide = OPPOSITE_DIRECTION[direction];
+        if (approachSide === destCell.ramp.entry) {
+          // Valid ascending entry from the low side
+          return !destCell.occupant ? flatDest : null;
+        }
+        // Wrong side — block (can't step onto ramp from non-entry side at same z)
+        return null;
+      }
+      // Regular flat movement
+      if (!isBlockingTerrain(destCell) && !destCell.occupant) {
+        return flatDest;
+      }
+    }
+  }
+
+  // Case 3: Check for descending onto a ramp one level below
+  const belowDest: Vec3i = { x: flatDest.x, y: flatDest.y, z: from.z - 1 };
+  if (belowDest.z >= 0 && isInBounds(snapshot, belowDest)) {
+    const belowCell = getCell(snapshot, belowDest);
+    if (belowCell?.terrain === 'ramp' && belowCell.ramp) {
+      const approachSide = OPPOSITE_DIRECTION[direction];
+      if (approachSide === belowCell.ramp.exit && !belowCell.occupant) {
+        // Valid descending entry from the high (exit) side
+        return belowDest;
+      }
+    }
+  }
+
+  return null;
+}
+
+/** Check if a position is a valid movement destination (in bounds, not blocking, not occupied). */
+function isValidMoveDest(snapshot: WorldSnapshot, pos: Vec3i): boolean {
+  if (!isInBounds(snapshot, pos)) return false;
+  const cell = getCell(snapshot, pos);
+  if (!cell) return false;
+  if (isBlockingTerrain(cell)) return false;
+  if (cell.occupant) return false;
+  return true;
+}
+
+/**
+ * Resolve the next destination for a kicked bomb, accounting for ramp traversal.
+ * Similar to actor ramp logic but bombs slide continuously in one direction.
+ */
+export function resolveKickedBombDestination(
+  snapshot: WorldSnapshot,
+  from: Vec3i,
+  direction: Direction2D,
+): Vec3i | null {
+  const srcCell = getCell(snapshot, from);
+  if (!srcCell) return null;
+
+  // On a ramp: bomb can only continue if kick direction matches entry or exit
+  if (srcCell.terrain === 'ramp' && srcCell.ramp) {
+    if (direction === srcCell.ramp.entry) {
+      const dest = getNeighbor(from, direction);
+      return isValidMoveDest(snapshot, dest) ? dest : null;
+    }
+    if (direction === srcCell.ramp.exit) {
+      const neighbor = getNeighbor(from, direction);
+      const dest: Vec3i = { x: neighbor.x, y: neighbor.y, z: neighbor.z + srcCell.ramp.deltaZ };
+      return isValidMoveDest(snapshot, dest) ? dest : null;
+    }
+    return null;
+  }
+
+  // Not on a ramp: check flat destination
+  const flatDest = getNeighbor(from, direction);
+
+  if (isInBounds(snapshot, flatDest)) {
+    const destCell = getCell(snapshot, flatDest);
+    if (destCell) {
+      if (destCell.terrain === 'ramp' && destCell.ramp) {
+        const approachSide = OPPOSITE_DIRECTION[direction];
+        if (approachSide === destCell.ramp.entry) {
+          return !destCell.occupant ? flatDest : null;
+        }
+        return null;
+      }
+      if (!isBlockingTerrain(destCell) && !destCell.occupant) {
+        return flatDest;
+      }
+    }
+  }
+
+  // Check descending onto a ramp below
+  const belowDest: Vec3i = { x: flatDest.x, y: flatDest.y, z: from.z - 1 };
+  if (belowDest.z >= 0 && isInBounds(snapshot, belowDest)) {
+    const belowCell = getCell(snapshot, belowDest);
+    if (belowCell?.terrain === 'ramp' && belowCell.ramp) {
+      const approachSide = OPPOSITE_DIRECTION[direction];
+      if (approachSide === belowCell.ramp.exit && !belowCell.occupant) {
+        return belowDest;
+      }
+    }
+  }
+
+  return null;
+}
 
 function collectItem(actor: ActorState, cell: Cell, config: MatchConfig): void {
   if (!cell.item) return;

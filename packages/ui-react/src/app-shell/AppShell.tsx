@@ -8,7 +8,7 @@ import type { WorldSnapshot, MatchConfig, KeybindConfig } from '@bomberman65/sha
 import type { ActorState } from '@bomberman65/shared';
 import { AppLayout } from '../layout/AppLayout.js';
 import { TopBar, type TopBarProps } from '../top-bar/TopBar.js';
-import { LeftSidebar } from '../left-sidebar/LeftSidebar.js';
+import { LeftSidebar, type LeftSidebarProps } from '../left-sidebar/LeftSidebar.js';
 import { RightSidebar } from '../right-sidebar/RightSidebar.js';
 import { BottomBar } from '../bottom-bar/BottomBar.js';
 
@@ -28,6 +28,7 @@ export type AppShellProps = {
   keybinds?: KeybindConfig;
   onKeybindsChange?: (keybinds: KeybindConfig) => void;
   onModifyActor?: (actorId: string, field: string, value: number) => void;
+  agentSetup?: Pick<LeftSidebarProps, 'bots' | 'onBotsChange' | 'behaviors' | 'onBehaviorsChange' | 'currentMap'>;
 };
 
 export function AppShell({
@@ -40,6 +41,7 @@ export function AppShell({
   keybinds,
   onKeybindsChange,
   onModifyActor,
+  agentSetup,
 }: AppShellProps) {
   const actorCount = snapshot
     ? (Object.values(snapshot.actors) as ActorState[]).filter((a) => a.state.kind !== 'eliminated')
@@ -60,6 +62,7 @@ export function AppShell({
           onConfigChange={onConfigChange}
           keybinds={keybinds}
           onKeybindsChange={onKeybindsChange}
+          {...agentSetup}
         />
       }
       rightSidebar={<RightSidebar snapshot={snapshot} onModifyActor={onModifyActor} />}

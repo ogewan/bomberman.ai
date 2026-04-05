@@ -11,6 +11,7 @@ import type {
   Direction2D,
 } from '@bomberman65/shared';
 import { getCell, getNeighbor, clearOccupant } from '../world/gridHelpers.js';
+import { resolveKickedBombDestination } from './movementResolution.js';
 
 let bombCounter = 0;
 
@@ -97,7 +98,8 @@ function kickBomb(
   const totalTicks = config.kickedBombTravelTicks;
   const leavingTicks = Math.floor(totalTicks / 2);
 
-  const dest = getNeighbor(targetPos, direction);
+  const dest = resolveKickedBombDestination(snapshot, targetPos, direction);
+  if (!dest) return; // No valid destination (blocked by ramp orientation, etc.)
 
   bomb.state = {
     kind: 'surfaceTravel',

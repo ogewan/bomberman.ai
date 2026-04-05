@@ -12,7 +12,7 @@
  */
 
 import type { MapDefinition, ValidationIssue, Vec3i } from '@bomberman65/shared';
-import { MAX_HEIGHT_LEVELS, vec3iEqual } from '@bomberman65/shared';
+import { MAX_HEIGHT_LEVELS, vec3iEqual, CARDINAL_DIRECTIONS, DIRECTION_TO_VECTOR } from '@bomberman65/shared';
 
 export function validateMap(map: MapDefinition): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -20,6 +20,7 @@ export function validateMap(map: MapDefinition): ValidationIssue[] {
   validateDimensions(map, issues);
   validateHeightRange(map, issues);
   validateCells(map, issues);
+  validateRampAdjacency(map, issues);
   validateSpawns(map, issues);
 
   return issues;
@@ -114,6 +115,88 @@ function validateCellContent(
         message: `Item dropChance ${cell.item.dropChance} is outside valid range 0..1`,
         location: pos,
       });
+    }
+  }
+}
+
+function validateRampAdjacency(map: MapDefinition, issues: ValidationIssue[]): void {
+  for (let z = 0; z < map.size.z; z++) {
+    const layer = map.cells[z];
+    if (!layer) continue;
+    for (let y = 0; y < map.size.y; y++) {
+      const row = layer[y];
+      if (!row) continue;
+      for (let x = 0; x < map.size.x; x++) {
+        const cell = row[x];
+        if (!cell || cell.terrain !== 'ramp' || !cell.ramp) continue;
+        const pos: Vec3i = { x, y, z };
+
+        // Entry/exit must be cardinal directions
+        if (!CARDINAL_DIRECTIONS.includes(cell.ramp.entry as typeof CARDINAL_DIRECTIONS[number])) {
+          issues.push({
+            severity: 'error',
+            code: 'MAP_RAMP_INVALID_DIRECTION',
+            message: `Ramp entry direction '${cell.ramp.entry}' must be cardinal`,
+            location: pos,
+          });
+        }
+        if (!CARDINAL_DIRECTIONS.includes(cell.ramp.exit as typeof CARDINAL_DIRECTIONS[number])) {
+          issues.push({
+            severity: 'error',
+            code: 'MAP_RAMP_INVALID_DIRECTION',
+            message: `Ramp exit direction '${cell.ramp.exit}' must be cardinal`,
+            location: pos,
+          });
+        }
+
+        // Entry side: the cell in the entry direction at the same z must exist and be walkable
+        const entryVec = DIRECTION_TO_VECTOR[cell.ramp.entry];
+        const entryNeighbor: Vec3i = { x: x + entryVec.dx, y: y + entryVec.dy, z };
+        if (
+          entryNeighbor.x >= 0 &&
+          entryNeighbor.x < map.size.x &&
+          entryNeighbor.y >= 0 &&
+          entryNeighbor.y < map.size.y
+        ) {
+          const entryCell = map.cells[z]?.[entryNeighbor.y]?.[entryNeighbor.x];
+          if (entryCell && entryCell.terrain !== 'empty' && entryCell.terrain !== 'ramp') {
+            issues.push({
+              severity: 'warning',
+              code: 'MAP_RAMP_ENTRY_BLOCKED',
+              message: `Ramp entry neighbor at (${entryNeighbor.x},${entryNeighbor.y},${z}) is '${entryCell.terrain}', expected walkable`,
+              location: pos,
+            });
+          }
+        }
+
+        // Exit side: the cell in the exit direction at z + deltaZ must exist within bounds
+        const exitVec = DIRECTION_TO_VECTOR[cell.ramp.exit];
+        const exitZ = z + cell.ramp.deltaZ;
+        const exitNeighbor: Vec3i = { x: x + exitVec.dx, y: y + exitVec.dy, z: exitZ };
+        if (exitZ >= map.size.z) {
+          issues.push({
+            severity: 'error',
+            code: 'MAP_RAMP_EXIT_OUT_OF_BOUNDS',
+            message: `Ramp exit leads to z=${exitZ} which exceeds map height ${map.size.z}`,
+            location: pos,
+          });
+        } else if (
+          exitNeighbor.x >= 0 &&
+          exitNeighbor.x < map.size.x &&
+          exitNeighbor.y >= 0 &&
+          exitNeighbor.y < map.size.y
+        ) {
+          const exitCell = map.cells[exitZ]?.[exitNeighbor.y]?.[exitNeighbor.x];
+          if (exitCell && exitCell.terrain !== 'empty' && exitCell.terrain !== 'ramp') {
+            issues.push({
+              severity: 'warning',
+              code: 'MAP_RAMP_EXIT_BLOCKED',
+              message: `Ramp exit neighbor at (${exitNeighbor.x},${exitNeighbor.y},${exitZ}) is '${exitCell.terrain}', expected walkable`,
+              location: pos,
+            });
+          }
+        }
+      }
     }
   }
 }

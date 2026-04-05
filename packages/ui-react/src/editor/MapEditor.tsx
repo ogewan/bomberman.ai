@@ -49,6 +49,15 @@ export function MapEditor({ initialMap, onSave, onClose }: MapEditorProps) {
 
         if (paintMode.kind === 'terrain') {
           cell.terrain = paintMode.terrain;
+          if (paintMode.terrain === 'ramp' && paintMode.rampEntry && paintMode.rampExit) {
+            cell.ramp = {
+              entry: paintMode.rampEntry,
+              exit: paintMode.rampExit,
+              deltaZ: 1,
+            };
+          } else {
+            cell.ramp = undefined;
+          }
           if (paintMode.terrain !== 'breakable') {
             // Remove hiddenInBreakable items when terrain changes
             if (cell.item?.hiddenInBreakable) cell.item = undefined;
@@ -224,10 +233,16 @@ export function MapEditor({ initialMap, onSave, onClose }: MapEditorProps) {
                 <>
                   <br />
                   Terrain: {cell.terrain}
+                  {cell.ramp && (
+                    <>
+                      <br />
+                      Ramp: {cell.ramp.entry} → {cell.ramp.exit}
+                    </>
+                  )}
                   {cell.item && (
                     <>
                       <br />
-                      Item: {cell.item.type} (drop: {cell.item.dropChance ?? 1})
+                      Item: {cell.item.type} (drop: {Math.round((cell.item.dropChance ?? 1) * 100)}%)
                     </>
                   )}
                 </>

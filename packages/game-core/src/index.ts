@@ -31,7 +31,11 @@ export { ScenarioLoader } from './factories/ScenarioLoader.js';
 // Rules
 export { validateIntents } from './rules/intentValidation.js';
 export { advanceTimers } from './rules/timerAdvancement.js';
-export { applyMoveIntents, resolveSurfaceTravelPhases } from './rules/movementResolution.js';
+export {
+  applyMoveIntents,
+  resolveSurfaceTravelPhases,
+  resolveKickedBombDestination,
+} from './rules/movementResolution.js';
 export { resolveThrownTravel } from './rules/thrownTravelResolution.js';
 export { resolveFallingAndBounds } from './rules/fallingAndBounds.js';
 export { applyBombIntents } from './rules/bombActions.js';
@@ -71,6 +75,7 @@ export {
 // Adapters
 export {
   buildRenderModel,
+  buildTerrainModel,
   type RenderModel,
   type TerrainInstance,
   type ActorVisual,

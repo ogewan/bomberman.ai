@@ -9,6 +9,17 @@ build/
 # TypeScript
 *.tsbuildinfo
 
+# Compiled JS output alongside sources (tsc emit)
+packages/**/*.js
+packages/**/*.js.map
+packages/**/*.d.ts
+packages/**/*.d.ts.map
+apps/**/*.js
+apps/**/*.js.map
+apps/**/*.d.ts
+apps/**/*.d.ts.map
+!**/*.config.*
+
 # Testing
 coverage/
 
