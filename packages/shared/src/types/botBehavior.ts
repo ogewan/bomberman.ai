@@ -22,8 +22,17 @@ export type BotBehavior = {
 
   /** Maximum look-ahead distance for target scanning (cells). */
   readonly scanRange: number;
+  /** Separate scan range for chasing enemy actors (cells). */
+  readonly chaseScanRange: number;
   /** Whether the bot will use kick/throw/pump actions when it has the upgrade. */
   readonly useUpgrades: boolean;
+
+  /** Roam enemy bias. 0 = roam away from enemies, 0.5 = neutral, 1 = roam toward enemies. */
+  readonly roamAggression: number;
+  /** Probability of continuing last move direction when roaming. 0 = random, 1 = always continue. */
+  readonly roamDirectionBias: number;
+  /** Ticks the exact reverse direction is excluded from roam candidates after a move. 0 = disabled. */
+  readonly reversalCooldown: number;
 };
 
 /** Built-in behavior presets. */
@@ -38,7 +47,11 @@ export const BOT_BEHAVIOR_PRESETS: Record<string, BotBehavior> = {
     chaseWeight: 0,
     roamWeight: 1,
     scanRange: 3,
+    chaseScanRange: 3,
     useUpgrades: false,
+    roamAggression: 0.5,
+    roamDirectionBias: 0.7,
+    reversalCooldown: 3,
   },
   aggressive: {
     id: 'aggressive',
@@ -50,7 +63,11 @@ export const BOT_BEHAVIOR_PRESETS: Record<string, BotBehavior> = {
     chaseWeight: 1,
     roamWeight: 0.5,
     scanRange: 5,
+    chaseScanRange: 6,
     useUpgrades: true,
+    roamAggression: 0.8,
+    roamDirectionBias: 0.5,
+    reversalCooldown: 2,
   },
   cautious: {
     id: 'cautious',
@@ -62,7 +79,11 @@ export const BOT_BEHAVIOR_PRESETS: Record<string, BotBehavior> = {
     chaseWeight: 0,
     roamWeight: 0.8,
     scanRange: 4,
+    chaseScanRange: 4,
     useUpgrades: false,
+    roamAggression: 0.2,
+    roamDirectionBias: 0.8,
+    reversalCooldown: 4,
   },
   passive: {
     id: 'passive',
@@ -74,7 +95,11 @@ export const BOT_BEHAVIOR_PRESETS: Record<string, BotBehavior> = {
     chaseWeight: 0,
     roamWeight: 1.5,
     scanRange: 2,
+    chaseScanRange: 2,
     useUpgrades: false,
+    roamAggression: 0.3,
+    roamDirectionBias: 0.9,
+    reversalCooldown: 3,
   },
 };
 

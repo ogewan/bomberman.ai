@@ -83,14 +83,15 @@ function renderControls(state: GameState, handlers: TopBarProps) {
       return (
         <>
           <Btn onClick={handlers.onResume}>Resume</Btn>
-          <Btn onClick={handlers.onStepBack}>Step Back</Btn>
-          <Btn onClick={handlers.onStepTick}>Step</Btn>
+          <RepeatBtn onClick={handlers.onStepBack}>Step Back</RepeatBtn>
+          <RepeatBtn onClick={handlers.onStepTick}>Step</RepeatBtn>
           <Btn onClick={handlers.onStop}>Back to Setup</Btn>
         </>
       );
     case 'results':
       return (
         <>
+          <RepeatBtn onClick={handlers.onStepBack}>Step Back</RepeatBtn>
           <Btn onClick={handlers.onRestart}>Restart</Btn>
           <Btn onClick={handlers.onStop}>Back to Setup</Btn>
         </>
@@ -103,6 +104,40 @@ function renderControls(state: GameState, handlers: TopBarProps) {
 function Btn({ onClick, children }: { onClick?: () => void; children: React.ReactNode }) {
   return (
     <button onClick={onClick} style={btnStyle}>
+      {children}
+    </button>
+  );
+}
+
+/** Button that auto-repeats its action while held down. */
+function RepeatBtn({ onClick, children }: { onClick?: () => void; children: React.ReactNode }) {
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stop = React.useCallback(() => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+  }, []);
+
+  const start = React.useCallback(() => {
+    if (!onClick) return;
+    onClick();
+    timerRef.current = setTimeout(() => {
+      intervalRef.current = setInterval(() => { onClick(); }, 60);
+    }, 300);
+  }, [onClick]);
+
+  React.useEffect(() => stop, [stop]);
+
+  return (
+    <button
+      onMouseDown={start}
+      onMouseUp={stop}
+      onMouseLeave={stop}
+      onTouchStart={start}
+      onTouchEnd={stop}
+      style={btnStyle}
+    >
       {children}
     </button>
   );

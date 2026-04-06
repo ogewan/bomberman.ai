@@ -146,7 +146,7 @@ export class SimulationRunner {
    * Returns true if step-back succeeded.
    */
   stepBack(count: number = 1): boolean {
-    if (this.run.status !== 'paused') return false;
+    if (this.run.status !== 'paused' && this.run.status !== 'finished') return false;
 
     const currentTick = this.run.snapshot.tick;
     const targetTick = Math.max(0, currentTick - count);
