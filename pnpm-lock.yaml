@@ -121,6 +121,12 @@ importers:
         specifier: workspace:*
         version: link:../shared
 
+  packages/env-n64wasm:
+    dependencies:
+      '@bomberman65/platform-core':
+        specifier: workspace:*
+        version: link:../platform-core
+
   packages/game-core:
     dependencies:
       '@bomberman65/shared':
