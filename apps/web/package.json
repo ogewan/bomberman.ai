@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@bomberman65/app-state": "workspace:*",
+    "@bomberman65/env-bomberman26": "workspace:*",
     "@bomberman65/game-core": "workspace:*",
+    "@bomberman65/platform-core": "workspace:*",
     "@bomberman65/render-r3f": "workspace:*",
     "@bomberman65/shared": "workspace:*",
     "@bomberman65/ui-react": "workspace:*",

@@ -1,0 +1,16 @@
+{
+  "name": "@bomberman65/ml-inference",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@bomberman65/platform-core": "workspace:*",
+    "@tensorflow/tfjs": "^4.22.0"
+  }
+}
