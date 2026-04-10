@@ -1,0 +1,21 @@
+{
+  "name": "@bomberman65/env-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node ./dist/index.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@bomberman65/env-bomberman26": "workspace:*",
+    "@bomberman65/env-n64wasm": "workspace:*",
+    "@bomberman65/platform-core": "workspace:*",
+    "@bomberman65/platform-server": "workspace:*",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1"
+  }
+}

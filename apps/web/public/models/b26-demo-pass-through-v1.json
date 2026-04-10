@@ -1,0 +1,19 @@
+{
+  "id": "b26-demo-pass-through-v1",
+  "name": "B26 Demo Pass-Through Policy",
+  "description": "Demo-compatible TF.js policy that consumes Bomberman26 agentFeatures.actionLogits and emits the same 13 action scores.",
+  "envType": "bomberman26",
+  "actionSpace": {
+    "kind": "discrete",
+    "n": 13
+  },
+  "observationMode": "structuredState",
+  "builtinModelId": "b26-demo-pass-through-v1",
+  "stateProjection": {
+    "kind": "path",
+    "path": "agentFeatures.actionLogits",
+    "expectedLength": 13
+  },
+  "outputMode": "qvalue",
+  "actionSelection": "greedy"
+}

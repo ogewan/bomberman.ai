@@ -1,0 +1,47 @@
+{
+  "reportVersion": 1,
+  "generatedAt": "2026-04-10T00:00:00Z",
+  "machine": {
+    "cpu": "fill-me-in",
+    "ramGb": 0,
+    "os": "fill-me-in"
+  },
+  "serverConfig": {
+    "envServerUrl": "ws://localhost:4315",
+    "notes": "Fill in server/runtime details used for the benchmark run."
+  },
+  "bomberman26": {
+    "localStepsPerSecond": 0,
+    "remoteSingleInstanceStepsPerSecond": 0,
+    "remoteMultiInstance": {
+      "4": 0,
+      "8": 0,
+      "16": 0
+    }
+  },
+  "n64wasm": {
+    "singleInstance": {
+      "startupMs": 0,
+      "resetMs": 0,
+      "stepMs": 0,
+      "frameCaptureMs": 0,
+      "saveStateMs": 0
+    },
+    "multiInstanceSweep": [
+      {
+        "instances": 1,
+        "status": "fill-me-in",
+        "notes": "fill-me-in"
+      }
+    ]
+  },
+  "mupen64plusAssessment": {
+    "integrationCost": "fill-me-in",
+    "expectedTrainingBenefit": "fill-me-in",
+    "decision": "stay_on_n64wasm_or_pivot"
+  },
+  "recommendation": {
+    "selectedTrainingRuntime": "fill-me-in",
+    "reasoning": "fill-me-in"
+  }
+}

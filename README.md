@@ -1,6 +1,6 @@
 # Bomberman 65
 
-Bomberman 64-inspired 3D bomberman game with deterministic simulation and AI.
+Bomberman 64-inspired 3D bomberman game and emulator ML platform with deterministic simulation, remote environment hosting, and browser/Python experiment workflows.
 
 ## Overview
 
@@ -59,11 +59,18 @@ cd apps/desktop && pnpm dev
 apps/
   web/              Vite + React web app entry point
   desktop/          Electron desktop shell (loads web app)
+  env-server/       WebSocket host for remote GameEnvironment instances
+  training/         Python training/evaluation sidecar
 
 packages/
   shared/           Shared types, math, serialization, constants
   game-core/        Simulation: world, rules, intents, replay, runner,
                     validation, factories, adapters
+  platform-core/    Environment interface, runner/session, remote protocol
+  platform-server/  Multi-instance server-side environment host
+  env-bomberman26/  GameEnvironment adapter for the custom engine
+  env-n64wasm/      GameEnvironment adapter for N64Wasm
+  ml-inference/     TF.js inference agent and model manifest support
   app-state/        Zustand stores (session, selection, layout, worker status)
   workers/          Simulation worker and WorkerRunManager
   render-r3f/       React Three Fiber scene, camera, terrain, actors,

@@ -1,0 +1,9 @@
+{
+  "models": [
+    {
+      "id": "b26-demo-pass-through-v1",
+      "name": "B26 Demo Pass-Through Policy",
+      "file": "b26-demo-pass-through-v1.json"
+    }
+  ]
+}

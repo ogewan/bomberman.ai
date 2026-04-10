@@ -21,6 +21,8 @@ import type {
   ObservationPipelineConfig,
 } from '@bomberman65/platform-core';
 import { ObservationPipeline } from '@bomberman65/platform-core';
+import { createBuiltinModel } from './builtinModels.js';
+import type { BuiltinModelId, StateProjectionConfig } from './modelManifest.js';
 
 /** How to interpret the model's output tensor. */
 export type OutputMode = 'policy' | 'qvalue';
@@ -31,7 +33,9 @@ export type ActionSelectionMode = 'greedy' | 'sample' | 'epsilon_greedy';
 /** Configuration for the InferenceAgent. */
 export type InferenceAgentConfig = {
   /** Path/URL to the TF.js model (model.json). */
-  readonly modelPath: string;
+  readonly modelPath?: string;
+  /** ID of a built-in demo model. Used when no external model artifact is available. */
+  readonly builtinModelId?: BuiltinModelId;
   /** How to interpret model output. Default: 'qvalue'. */
   readonly outputMode?: OutputMode;
   /** Action selection strategy. Default: 'greedy'. */
@@ -40,6 +44,8 @@ export type InferenceAgentConfig = {
   readonly epsilon?: number;
   /** Observation pipeline config for frame preprocessing. */
   readonly observationPipeline?: ObservationPipelineConfig;
+  /** Projection from structured state into a fixed model input vector. */
+  readonly stateProjection?: StateProjectionConfig;
   /** Agent display name. */
   readonly name?: string;
 };
@@ -55,7 +61,7 @@ export class InferenceAgent implements Agent {
   constructor(config: InferenceAgentConfig) {
     this.config = config;
     this.info = {
-      id: `inference_${config.modelPath.split('/').pop() ?? 'model'}`,
+      id: `inference_${(config.modelPath ?? config.builtinModelId ?? 'model').split('/').pop() ?? 'model'}`,
       name: config.name ?? 'TF.js Inference Agent',
       kind: 'inference',
     };
@@ -76,7 +82,16 @@ export class InferenceAgent implements Agent {
       this.pipeline = new ObservationPipeline(this.config.observationPipeline);
     }
 
-    // Load model
+    if (this.config.builtinModelId) {
+      const inputSize = this.getExpectedInputSize();
+      this.model = createBuiltinModel(this.config.builtinModelId, inputSize, this.numActions);
+      return;
+    }
+
+    if (!this.config.modelPath) {
+      throw new Error('InferenceAgent requires either modelPath or builtinModelId.');
+    }
+
     try {
       this.model = await tf.loadLayersModel(this.config.modelPath);
     } catch {
@@ -85,14 +100,14 @@ export class InferenceAgent implements Agent {
     }
   }
 
-  async selectAction(observation: Observation): Promise<ActionInput> {
+  async selectAction(observation: Observation, _step?: number): Promise<ActionInput> {
     if (!this.model) throw new Error('Model not loaded. Call init() first.');
 
     // Preprocess observation through pipeline
     const inputTensor = this.observationToTensor(observation);
 
     try {
-      // Forward pass
+      // Forward pass — both LayersModel and GraphModel support predict()
       const output = this.model.predict(inputTensor) as tf.Tensor;
       const values = await output.data();
       output.dispose();
@@ -131,6 +146,11 @@ export class InferenceAgent implements Agent {
       }
     }
 
+    if (this.config.stateProjection && observation.state) {
+      const projected = this.projectState(observation.state, this.config.stateProjection);
+      return tf.tensor2d([projected]);
+    }
+
     // Fallback: if observation has structured state, flatten it
     if (observation.state) {
       const flat = this.flattenState(observation.state);
@@ -138,6 +158,21 @@ export class InferenceAgent implements Agent {
     }
 
     throw new Error('Observation has neither frame nor state data');
+  }
+
+  private getExpectedInputSize(): number {
+    if (this.config.stateProjection?.expectedLength) {
+      return this.config.stateProjection.expectedLength;
+    }
+
+    if (this.pipeline) {
+      const [stack, channels, height, width] = this.pipeline.getOutputShape();
+      return stack * channels * height * width;
+    }
+
+    throw new Error(
+      'Builtin inference models require either stateProjection.expectedLength or observationPipeline.',
+    );
   }
 
   private flattenState(state: Record<string, unknown>): number[] {
@@ -155,6 +190,48 @@ export class InferenceAgent implements Agent {
     };
     flatten(state);
     return values;
+  }
+
+  private projectState(state: Record<string, unknown>, config: StateProjectionConfig): number[] {
+    switch (config.kind) {
+      case 'path': {
+        const value = this.readPath(state, config.path);
+        const projected = this.toNumericArray(value);
+        if (config.expectedLength !== undefined && projected.length !== config.expectedLength) {
+          throw new Error(
+            `State projection path '${config.path}' produced ${projected.length} values; expected ${config.expectedLength}.`,
+          );
+        }
+        return projected;
+      }
+    }
+  }
+
+  private readPath(state: Record<string, unknown>, path: string): unknown {
+    let current: unknown = state;
+    for (const key of path.split('.')) {
+      if (!current || typeof current !== 'object' || !(key in current)) {
+        throw new Error(`State projection path '${path}' could not be resolved.`);
+      }
+      current = (current as Record<string, unknown>)[key];
+    }
+    return current;
+  }
+
+  private toNumericArray(value: unknown): number[] {
+    if (Array.isArray(value)) {
+      return value.map((entry) => this.toNumber(entry));
+    }
+    if (value && typeof value === 'object') {
+      return Object.values(value).map((entry) => this.toNumber(entry));
+    }
+    return [this.toNumber(value)];
+  }
+
+  private toNumber(value: unknown): number {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'boolean') return value ? 1 : 0;
+    throw new Error(`Projected state value '${String(value)}' is not numeric.`);
   }
 
   private selectFromOutput(values: Float32Array): number {

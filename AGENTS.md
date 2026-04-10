@@ -31,6 +31,11 @@ If any future implementation detail conflicts with the Notion specs, prefer the 
 - **Linting:** ESLint
 - **Formatting:** Prettier
 
+## Shell Preference
+
+- Use `bash` for command execution by default.
+- Fall back to PowerShell only if `bash` is unavailable, blocked by the environment, or clearly incompatible with the task.
+
 ## Architecture — Non-Negotiable Rules
 
 1. **Simulation logic must NEVER live in React components or renderer code.** The simulation core must run independently in tests, Web Workers, Electron workers, and future CLI/server environments. No simulation logic may depend on browser-only DOM APIs.

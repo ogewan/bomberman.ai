@@ -75,3 +75,30 @@ export {
   RemoteGameEnvironment,
   type CommandSender,
 } from './RemoteGameEnvironment.js';
+
+// Remote host protocol
+export {
+  type EnvironmentInstanceId,
+  type TransportEnvironmentCommand,
+  type RemoteEnvironmentRequest,
+  type RemoteEnvironmentResponse,
+  type RemoteEnvironmentCommandResult,
+  type SerializedFrameData,
+  type SerializedObservation,
+  type SerializedStateSnapshot,
+  type SerializedStepResult,
+  type SerializedBinaryBlob,
+  nextRemoteRequestId,
+  resetRemoteRequestCounter,
+  serializeObservation,
+  deserializeObservation,
+  serializeStepResult,
+  deserializeStepResult,
+  serializeStateSnapshot,
+  deserializeStateSnapshot,
+  serializeFrameData,
+  deserializeFrameData,
+  serializeBinaryBlob,
+  deserializeBinaryBlob,
+  isSerializedBinaryBlob,
+} from './RemoteEnvironmentProtocol.js';

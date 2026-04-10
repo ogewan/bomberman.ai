@@ -87,6 +87,17 @@ const MOVE_DIRECTIONS: Direction2D[] = [
   'southWest',
 ];
 
+const DIRECTION_VECTORS: Record<Direction2D, { dx: number; dy: number }> = {
+  north: { dx: 0, dy: -1 },
+  south: { dx: 0, dy: 1 },
+  east: { dx: 1, dy: 0 },
+  west: { dx: -1, dy: 0 },
+  northEast: { dx: 1, dy: -1 },
+  northWest: { dx: -1, dy: -1 },
+  southEast: { dx: 1, dy: 1 },
+  southWest: { dx: -1, dy: 1 },
+};
+
 export class Bomberman26Environment implements GameEnvironment {
   private runner: SimulationRunner | null = null;
   private config: B26EnvConfig | null = null;
@@ -272,8 +283,103 @@ export class Bomberman26Environment implements GameEnvironment {
 
   private buildObservation(snapshot: WorldSnapshot): Observation {
     return {
-      state: snapshot as unknown as Record<string, unknown>,
+      state: {
+        ...(snapshot as unknown as Record<string, unknown>),
+        agentFeatures: this.buildAgentFeatures(snapshot),
+      },
       step: snapshot.tick,
+    };
+  }
+
+  private buildAgentFeatures(snapshot: WorldSnapshot): Record<string, unknown> {
+    const targetId = this.agentActorId ?? this.actorIds[0];
+    if (!targetId) {
+      return {
+        actorId: null,
+        actionLogits: ACTION_LABELS.map(() => 0),
+      };
+    }
+
+    const self = snapshot.actors[targetId];
+    if (!self) {
+      return {
+        actorId: targetId,
+        actionLogits: ACTION_LABELS.map(() => 0),
+      };
+    }
+
+    const opponents = Object.values(snapshot.actors).filter(
+      (actor) => actor.id !== targetId && actor.state.kind !== 'eliminated',
+    );
+    const nearestOpponent = opponents
+      .map((actor) => ({
+        actor,
+        distance: Math.abs(actor.cell.x - self.cell.x) + Math.abs(actor.cell.y - self.cell.y),
+      }))
+      .sort((a, b) => a.distance - b.distance)[0];
+
+    const actionLogits = ACTION_LABELS.map(() => -0.25);
+    actionLogits[0] = -1;
+
+    if (nearestOpponent) {
+      for (let i = 0; i < MOVE_DIRECTIONS.length; i++) {
+        const dir = MOVE_DIRECTIONS[i]!;
+        const vector = DIRECTION_VECTORS[dir];
+        const nextDistance =
+          Math.abs(nearestOpponent.actor.cell.x - (self.cell.x + vector.dx)) +
+          Math.abs(nearestOpponent.actor.cell.y - (self.cell.y + vector.dy));
+        actionLogits[i + 1] = nearestOpponent.distance - nextDistance;
+      }
+
+      if (nearestOpponent.distance <= 1 && self.count > 0) {
+        actionLogits[9] = 1.5;
+      }
+    }
+
+    const adjacentBomb = Object.values(snapshot.bombs).find((bomb) => {
+      if (bomb.state.kind === 'removed') return false;
+      const dx = Math.abs(bomb.cell.x - self.cell.x);
+      const dy = Math.abs(bomb.cell.y - self.cell.y);
+      const dz = Math.abs(bomb.cell.z - self.cell.z);
+      return dx + dy + dz === 1;
+    });
+
+    const heldBomb = Object.values(snapshot.bombs).find(
+      (bomb) => bomb.state.kind === 'held' && bomb.state.holderActorId === targetId,
+    );
+
+    if (self.upgrade === 'kick' && adjacentBomb) {
+      actionLogits[10] = 2;
+    }
+
+    if (self.upgrade === 'carryPump') {
+      actionLogits[11] = adjacentBomb ? 1.5 : -1;
+      actionLogits[12] = heldBomb ? 2.5 : 0.25;
+    }
+
+    if (self.state.kind !== 'idle') {
+      actionLogits[0] = 0.5;
+    }
+
+    return {
+      actorId: targetId,
+      actionLogits,
+      self: {
+        x: self.cell.x,
+        y: self.cell.y,
+        z: self.cell.z,
+        count: self.count,
+        power: self.power,
+        upgradeKick: self.upgrade === 'kick' ? 1 : 0,
+        upgradeCarryPump: self.upgrade === 'carryPump' ? 1 : 0,
+        upgradeShield: self.upgrade === 'shield' ? 1 : 0,
+        stunTicksRemaining: self.stunTicksRemaining,
+        shieldTicksRemaining: self.shieldTicksRemaining,
+      },
+      nearestOpponentDistance: nearestOpponent?.distance ?? -1,
+      liveOpponentCount: opponents.length,
+      hasAdjacentBomb: adjacentBomb ? 1 : 0,
+      isHoldingBomb: heldBomb ? 1 : 0,
     };
   }
 

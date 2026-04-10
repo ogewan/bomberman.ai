@@ -6,3 +6,9 @@ export {
   type OutputMode,
   type ActionSelectionMode,
 } from './InferenceAgent.js';
+
+export {
+  type BuiltinModelId,
+  type StateProjectionConfig,
+  type ModelManifest,
+} from './modelManifest.js';
