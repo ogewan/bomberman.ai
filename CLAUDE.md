@@ -1,14 +1,25 @@
-# Bomberman 65
+# Emulator ML Platform (Bomberman 65)
 
 ## Project Overview
 
-Bomberman 64-inspired 3D bomberman game. Open-source portfolio project targeting **web** and **desktop (Electron)**. Uses a deterministic, tick-authoritative discrete simulation with surface-based 3D elevation (not free-volumetric). AI opponents will use TensorFlow/neural nets (not LLMs).
+Emulator ML Platform — a TypeScript-first experiment platform for training ML agents to play games. Wraps game environments (custom engines and emulators) behind a unified `GameEnvironment` interface. Portfolio project targeting **web** and **desktop (Electron)**.
+
+**Game targets:**
+- **Bomberman 26** — custom deterministic tick-based simulation engine (v0 complete)
+- **Bomberman 64** — N64 via N64Wasm emulator (Phase A: feasibility spike)
+- **TensorKart** — Mario Kart 64 via emulator (baseline reference)
+
+**Key principle:** Optimize for a TypeScript product that depends on an emulator, not an emulator project that happens to have a UI.
+
+### Bomberman 26 Engine
+Bomberman 64-inspired 3D bomberman game. Uses a deterministic, tick-authoritative discrete simulation with surface-based 3D elevation (not free-volumetric). Currently uses rule-based bot AI; ML/neural net agents planned via the platform.
 
 ## Source of Truth
 
 The canonical specs live on Notion. **For game/design rules, follow the Notion specs. For implementation strictness, coding style, and workflow rules, follow this config file.**
 
 - [Project Hub](https://www.notion.so/Bomberman-65-b762fa5d21354f6db23decb1ba69a287)
+- [Emulator ML Platform Spec v0](https://www.notion.so/33cd1838c6158190bf8bd7d5f6e316d3)
 - [Architecture Spec v0](https://www.notion.so/333d1838c6158113bfa5c46840cae29e)
 - [Renderer & UI Architecture Spec v0](https://www.notion.so/334d1838c615816e9cd4ef212ac80b1e)
 - [Map & Content Schema v0](https://www.notion.so/334d1838c6158185b03bc50a42cc88ec)
@@ -19,13 +30,16 @@ If any future implementation detail conflicts with the Notion specs, prefer the 
 
 ## Tech Stack
 
-- **Language:** TypeScript (strict mode)
+- **Language:** TypeScript (strict mode) — dominant authored code
 - **Monorepo:** pnpm workspaces
-- **Rendering:** React Three Fiber (R3F) with Three.js
+- **Rendering:** React Three Fiber (R3F) with Three.js (B26 environment)
 - **UI:** React (separate root from R3F)
-- **State management:** Zustand (UI/session state ONLY — never authoritative simulation state)
+- **State management:** Zustand (UI/session state ONLY — never authoritative simulation/environment state)
 - **Desktop:** Electron
-- **ML (future):** TensorFlow.js
+- **ML inference:** TensorFlow.js (browser/Node)
+- **ML training:** Python (heavy offline training)
+- **Emulator:** N64Wasm (web-first), Mupen64Plus (fallback for training throughput)
+- **Server:** Node + headless Chromium (Puppeteer) for server-side emulator instances
 - **Build:** Vite
 - **Testing:** Vitest
 - **Linting:** ESLint
@@ -33,13 +47,19 @@ If any future implementation detail conflicts with the Notion specs, prefer the 
 
 ## Architecture — Non-Negotiable Rules
 
-1. **Simulation logic must NEVER live in React components or renderer code.** The simulation core must run independently in tests, Web Workers, Electron workers, and future CLI/server environments. No simulation logic may depend on browser-only DOM APIs.
-2. **Renderer must NEVER mutate authoritative world state.** Presentation consumes derived read models / immutable view-model snapshots.
-3. **3D renderer and GUI have separate React roots.** One React root for GUI/app shell, one R3F root for 3D rendering.
-4. **All simulation runs in workers.** The active visible run also runs in a worker. Main thread is presentation-only: React UI, R3F rendering, input capture, selection presentation, worker orchestration.
-5. **One worker implementation path for v0.** Active simulation, headless simulation, and replay all use the same worker path. Do not create a specialized replay worker in v0.
-6. **Zustand is UI/session state only.** Allowed: layout state, selection state, session/app state, overlay toggles, worker status summaries, viewed replay tick, playback UI state. Do NOT store authoritative WorldSnapshot in Zustand.
-7. **Upgrades are exclusive:** kick, carry/pump, or shield — never multiple.
+### Platform-Level Rules
+
+1. **All game backends implement `GameEnvironment`.** Platform UI, agents, and experiment sessions interact only through the GameEnvironment interface. Never import game-core or emulator internals directly from platform-level code.
+2. **Environment logic must NEVER live in React components or renderer code.** Environments run independently in tests, workers, headless Chromium, and server contexts.
+3. **Renderer must NEVER mutate authoritative environment state.** Presentation consumes derived read models / immutable snapshots.
+4. **Zustand is UI/session state only.** Allowed: layout state, selection state, session/app state, overlay toggles, worker status summaries, environment status. Do NOT store authoritative environment state in Zustand.
+5. **Server-client model for training.** WASM emulators run in headless Chromium (Puppeteer) server-side. Clients connect via WebSocket using `RemoteGameEnvironment`.
+
+### B26 Engine Rules (within game-core / env-bomberman26)
+
+6. **3D renderer and GUI have separate React roots.** One React root for GUI/app shell, one R3F root for 3D rendering.
+7. **All B26 simulation runs in workers.** Main thread is presentation-only.
+8. **Upgrades are exclusive:** kick, carry/pump, or shield — never multiple.
 
 ## Canonical Gameplay Rules
 
@@ -129,22 +149,28 @@ Do not create empty directories for the sake of following a template. Create sub
 
 ```
 apps/
-  web/                    # Vite + React entry
+  web/                    # Vite + React platform entry
   desktop/                # Electron shell
+  training/               # Python training scripts (separate, not TS)
 
 packages/
-  game-core/              # world, rules, intents, replay, runner, validation, factories, adapters
-  render-r3f/             # scene, camera, terrain, actors, bombs, items, effects, overlays, adapters
-  ui-react/               # app-shell, layout, sidebars, controls, inspector, replay, validation, states
-  app-state/              # stores, selection, layout, session, worker-status
-  workers/                # simulation-worker, messages, runner
-  shared/                 # types, math, serialization, constants
+  platform-core/          # GameEnvironment interface, AgentRuntime, ExperimentSession, ObservationPipeline
+  env-bomberman26/        # B26 adapter: wraps game-core behind GameEnvironment
+  env-n64wasm/            # N64Wasm adapter: wraps emulator behind GameEnvironment (Phase A)
+  game-core/              # B26 simulation: world, rules, intents, replay, runner, validation, factories, adapters
+  render-r3f/             # B26 rendering: scene, camera, terrain, actors, bombs, items, effects, overlays
+  ui-react/               # Platform UI shell — experiment dashboards, controls, inspector
+  app-state/              # Zustand stores — experiment state, environment status, UI layout
+  workers/                # Generalized worker orchestration for any GameEnvironment
+  shared/                 # Types, math, serialization, constants
+  ml-inference/           # TF.js model loading and inference runtime (Phase C)
 ```
 
 **Adapter placement:**
 
 - `game-core/adapters/` — generic state-to-view-model transforms (RenderModelAdapter, UiModelAdapter)
 - `render-r3f/adapters/` — rendering-specific transforms
+- `env-*/` — environment-specific adapters implementing GameEnvironment
 
 ## UI Layout
 
@@ -219,51 +245,33 @@ Avoid vague names like: `handleStuff`, `processData`, `updateThing`
 
 ## Implementation Phases
 
+### B26 Engine Phases (v0 Complete)
+
+Phases 0–10 are complete. The B26 engine is archived at tag `v0-bomberman65-complete`.
+
+### Platform Phases (Active)
+
 Work phase by phase. Complete one phase, summarize, stop, ask for confirmation before continuing. Never continue automatically.
 
-### Phase 0 — Repo and workspace setup
+### Phase 0 — Archive & Restructure (COMPLETE)
 
-Root workspace config, pnpm workspace, tsconfig strategy, package scaffolding, lint/format/test configs, README skeleton.
+Tag B26 v0 state. Define GameEnvironment interface in platform-core. Create env-bomberman26 adapter wrapping game-core. Verify existing tests pass.
 
-### Phase 1 — Core shared types and domain model
+### Phase A — N64Wasm Feasibility Spike
 
-Direction type + vector lookup, shared types, world/cell/entity schemas, actor/bomb state types, run/config/result types, validation issue types, selection types, serialization-safe types.
+Embed N64Wasm in Electron/browser. Embed in headless Chromium via Puppeteer. Test: programmatic input injection, frame capture, save/load state, frame stepping. Create env-n64wasm adapter. Measure performance. Go/no-go decision.
 
-### Phase 2 — Simulation core skeleton
+### Phase B — Platform Architecture
 
-SimulationRun, SimulationRunner, tick loop skeleton, no-op runner stepping, intent interfaces, worker-compatible simulation boundary, replay/session scaffolding.
+AgentRuntime (human, scripted, inference modes). ExperimentSession (config, checkpoints, metrics, logs). ObservationPipeline (frame processing). Worker orchestration generalized for any GameEnvironment. Experiment dashboard UI.
 
-### Phase 3 — Map/scenario loading and validation
+### Phase C — ML Demo Slice
 
-MapContentLoader, ScenarioLoader, WorldFactory, SimulationRunFactory, validation pipeline, hard-fail/override paths, structured validation output.
+One game, one observation format, one simple model. TF.js inference in browser. Replay/metrics view. Browser-visible demo.
 
-### Phase 4 — Movement and occupancy rules
+### Phase D — Training & Scaling
 
-Surface travel, leaving/entering phase resolution, support checks, falling, out-of-bounds, occupancy updates, throw travel skeleton, bounce cap.
-
-### Phase 5 — Bomb, explosion, and collision rules
-
-Bomb placement, kick/carry/pump, fuse ticking, regular + pumped propagation, breakable destruction, stun/elimination, shield, thrown collision, same-step bounce/momentum chaining.
-
-### Phase 6 — Replay and worker orchestration
-
-Worker message contract, one worker path for active/headless/replay, intent log + checkpoints, replay controller, worker run manager, import/export basics.
-
-### Phase 7 — Render model adapters and R3F scene
-
-Render model adapter, primitive terrain, actor/bomb/item rendering, fixed semi-isometric camera, interpolation, debug overlay support.
-
-### Phase 8 — GUI shell and application state flow
-
-Separate GUI root, Zustand stores (UI/session only), layout panels, contextual sidebar tabs, game states, bidirectional selection sync.
-
-### Phase 9 — Import/export flows and usability pass
-
-Map/scenario/session/replay import/export, model import/export hooks, validation surfacing in GUI/logs, usability polish.
-
-### Phase 10 — Testing, docs, portfolio readiness
-
-Targeted unit tests, determinism checks, replay reconstruction checks, architecture docs, usage docs, portfolio-ready explanation of design choices.
+Python training sidecar. Multi-instance evaluation. N64Wasm vs Mupen64Plus decision. TensorKart baseline comparison.
 
 ## Per-Phase Output Format
 
@@ -282,14 +290,13 @@ Never continue automatically.
 Do NOT do any of the following unless the user explicitly asks:
 
 - Swap frameworks (React, R3F, Zustand, Vite, Electron, Vitest)
-- Move simulation to main thread
+- Move environment execution to main thread
 - Replace workers with direct in-app stepping
-- Collapse GUI and renderer into one root
-- Store authoritative simulation state in Zustand
+- Store authoritative environment state in Zustand
 - Replace phase sequencing with ad hoc implementation
 - Introduce Redux or Turborepo
-- Redesign game rules or invent new gameplay mechanics
-- Change repo layout substantially
+- Import game-core or emulator internals directly from platform-level code (use GameEnvironment)
+- Let the project become primarily a C/C++ emulator-hacking project
 - Skip ahead to later phases
 
 If a deviation seems necessary, explicitly label it as:
@@ -301,4 +308,4 @@ If a deviation seems necessary, explicitly label it as:
 
 If drift occurs, follow this reminder:
 
-> Follow the Bomberman AI specs and this config file exactly. Do not redesign architecture. Implement only the current phase. End with a phase summary and ask for confirmation before continuing.
+> Follow the Emulator ML Platform and Bomberman AI specs and this config file exactly. Do not redesign architecture. Implement only the current phase. End with a phase summary and ask for confirmation before continuing.
