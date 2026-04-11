@@ -1,0 +1,65 @@
+{
+  "reportVersion": 1,
+  "generatedAt": "2026-04-10T17:30:00Z",
+  "machine": {
+    "cpu": "AMD64 Family 23 Model 113 Stepping 0, AuthenticAMD",
+    "ramGb": 32.0,
+    "os": "Windows 10"
+  },
+  "serverConfig": {
+    "envServerUrl": "ws://localhost:4315",
+    "notes": "Node.js env-server running Bomberman26Environment via platform-server EnvironmentServer."
+  },
+  "bomberman26": {
+    "localStepsPerSecond": 8598,
+    "remoteSingleInstanceStepsPerSecond": 1482,
+    "remoteMultiInstance": {
+      "1": {
+        "stepsPerSecond": 1482,
+        "perInstanceStepsPerSecond": 1482,
+        "totalSteps": 410,
+        "elapsedSeconds": 0.277
+      },
+      "4": {
+        "stepsPerSecond": 3967,
+        "perInstanceStepsPerSecond": 992,
+        "totalSteps": 1620,
+        "elapsedSeconds": 0.408
+      },
+      "8": {
+        "stepsPerSecond": 5083,
+        "perInstanceStepsPerSecond": 635,
+        "totalSteps": 3330,
+        "elapsedSeconds": 0.655
+      },
+      "16": "not_measured — 8 instances already showed sublinear scaling; diminishing returns expected"
+    },
+    "trainingValidated": true,
+    "trainingNotes": "REINFORCE (linear policy, pure NumPy) runs end-to-end: connect → create → init → reset → step → collect trajectory → gradient update. 10 episodes in 0.9s."
+  },
+  "n64wasm": {
+    "singleInstance": {
+      "startupMs": "deferred — requires ROM + N64Wasm dist",
+      "resetMs": "deferred",
+      "stepMs": "deferred",
+      "frameCaptureMs": "deferred",
+      "saveStateMs": "deferred"
+    },
+    "multiInstanceSweep": [
+      {
+        "instances": 1,
+        "status": "deferred",
+        "notes": "N64Wasm headless test harness exists (packages/env-n64wasm/spike/headless-test.mjs) but requires a legally obtained ROM file and N64Wasm dist directory to run."
+      }
+    ]
+  },
+  "mupen64plusAssessment": {
+    "integrationCost": "not-assessed — Mupen64Plus is not installed on the development machine",
+    "expectedTrainingBenefit": "not-assessed",
+    "decision": "deferred_pending_external_deps"
+  },
+  "recommendation": {
+    "selectedTrainingRuntime": "bomberman26_env_server",
+    "reasoning": "B26 via env-server is proven working for RL training. Local throughput is 8,598 steps/sec; remote single-instance is 1,482 steps/sec; 8 concurrent instances achieve 5,083 aggregate steps/sec. The WebSocket overhead is ~6x vs local, but multi-instance parallelism recovers aggregate throughput. For B26 training, this is sufficient. N64 targets require external dependencies (ROM files, N64Wasm dist, Mupen64Plus) not yet available — those benchmarks and the runtime decision for emulator targets are deferred."
+  }
+}

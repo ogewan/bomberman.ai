@@ -13,10 +13,10 @@ from .protocol import (
 )
 
 
-PolicyFn = Callable[[dict[str, Any]], Awaitable[Any]]
+PolicyFn = Callable[[dict[str, Any], dict[str, Any]], Awaitable[Any]]
 
 
-async def random_discrete_policy(action_space: dict[str, Any]) -> int:
+async def random_discrete_policy(action_space: dict[str, Any], _observation: dict[str, Any]) -> int:
     if action_space.get("kind") != "discrete":
         raise ValueError(f"random_discrete_policy only supports discrete spaces, got {action_space!r}")
     return random.randrange(int(action_space["n"]))
@@ -36,7 +36,7 @@ async def run_episode(
     trajectory: List[TrajectoryRecord] = []
 
     for step_index in range(run_config.max_steps_per_episode):
-        action = await policy(action_space)
+        action = await policy(action_space, observation)
         result = await instance.step(action)
         total_reward += result.reward
         observation = result.observation
