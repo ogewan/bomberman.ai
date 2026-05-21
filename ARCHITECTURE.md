@@ -1,10 +1,12 @@
 # Architecture — Design Decisions
 
-This document explains the major design choices in Bomberman 65 and their rationale. It is written for portfolio reviewers, contributors, and future AI collaborators.
+This document explains the major design choices in the project and their rationale. It is written for portfolio reviewers, contributors, and future AI collaborators.
+
+**Scope note:** The project began as the Bomberman 65 game and has since become the **Emulator ML Platform** — a TypeScript-first platform for training ML agents to play games, with Bomberman 26 as one environment alongside emulator-backed targets. Sections 1–10 below describe the **B26 simulation engine** (v0 complete). Section 11 describes the **platform layer** built in Phases A–D. See `CLAUDE.md` for the current project framing.
 
 ## Why This Architecture?
 
-Bomberman 65 is a portfolio project demonstrating that a game with complex simulation rules can be built with clean separation of concerns, deterministic behavior, and modern web technologies. Every architectural choice optimizes for **readability, testability, and portability** over premature performance optimization.
+The B26 engine demonstrates that a game with complex simulation rules can be built with clean separation of concerns, deterministic behavior, and modern web technologies. Every architectural choice optimizes for **readability, testability, and portability** over premature performance optimization.
 
 ---
 
@@ -160,10 +162,41 @@ Bomberman 65 is a portfolio project demonstrating that a game with complex simul
 
 ---
 
+## 11. Platform Layer (Phases A–D)
+
+**Decision:** Phases A–D added a platform layer on top of the B26 engine. Every game backend — the B26 engine and emulator-backed games — implements one `GameEnvironment` interface. Agents, experiment sessions, and the platform UI interact only through that interface, never with engine or emulator internals.
+
+**Why:**
+
+- One interface lets agents and training code be written once and run against any game (B26, N64 emulator, future targets)
+- Forces the same separation the B26 engine already enforces internally — environment logic stays out of UI and renderer code
+- Makes the project a reusable ML experiment platform, not a single-game codebase
+
+**Package structure (Phases 0, A–D):**
+
+- `packages/platform-core/` — the core. `GameEnvironment` interface (`types/environment.ts`: `FrameData`, `Observation`, `StepResult`, `StateSnapshot`, discrete/continuous/composite `ActionSpaceDescriptor`). `AgentRuntime` (`Agent` interface; `RandomAgent`, `NoOpAgent`, `ScriptedAgent`). `ExperimentSession` + `ExperimentRunner` (episode orchestration, checkpoints, `EpisodeMetrics`). `ObservationPipeline` (frame → `ProcessedObservation`).
+- `packages/env-bomberman26/` — `Bomberman26Environment`, the B26 engine wrapped behind `GameEnvironment` (Phase 0). Includes a throughput `benchmark.ts`.
+- `packages/env-n64wasm/` — `N64WasmEnvironment`, the N64Wasm emulator behind `GameEnvironment` (Phase A feasibility spike; see `spike/FEASIBILITY.md`).
+- `packages/ml-inference/` — `InferenceAgent`, a TensorFlow.js-backed agent, with `builtinModels` and a `modelManifest` loader (Phase C).
+- `packages/platform-server/` — `EnvironmentServer`, hosts environment instances and serves them over a transport.
+- `apps/env-server/` — runnable WebSocket server exposing hosted environments.
+- `apps/training/` — Python training sidecar: a REINFORCE training loop (`train.py`), rollout collection, and a protocol/client that talks to the env-server.
+- `apps/web/` — platform demo (`platform-demo`) with live inference metrics.
+
+**Worker and remote execution:**
+
+- `EnvironmentWorkerProtocol` + `EnvironmentWorkerBridge` run an environment in a worker, mirroring the B26 engine's worker-first rule (decision 2) at the platform level.
+- `RemoteGameEnvironment` is a client-side proxy implementing `GameEnvironment`; `RemoteEnvironmentProtocol` handles serialization (including binary blobs) for transport. This is how training clients connect to server-hosted emulator instances over WebSocket.
+
+**Trade-off:** The interface boundary adds indirection and a serialization layer for remote environments. Accepted because it is what makes cross-game agents and server-side training throughput possible.
+
+---
+
 ## What's Not Here Yet
 
-- **TensorFlow ML bots** — Planned as a future initiative, not part of v0
 - **Multiplayer networking** — The tick-based architecture supports it; implementation is future work
 - **Map editor** — Maps are hand-authored JSON for v0
 - **Asset pipeline** — v0 uses primitives (cubes, spheres, capsules); real models come later
 - **Production Electron build** — Dev mode works (loads Vite dev server); packaged distribution needs electron-builder config
+- **N64Wasm vs Mupen64Plus decision** — Phase D scope; N64Wasm is the web-first path, Mupen64Plus the throughput fallback
+- **TensorKart baseline comparison** — Mario Kart 64 reference target, not yet integrated
